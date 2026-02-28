@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [selectedMode, setSelectedMode] = useState<TransportMode>('bike');
   const [routeReady, setRouteReady] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [destCoords, setDestCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   const { data: stats, mutate: mutateStats } = useSWR(
     status === 'authenticated' ? '/api/user/stats' : null,
@@ -43,11 +44,16 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
-  const handleRouteCalculated = (dist: number, from: string, to: string) => {
+  const handleRouteCalculated = (dist: number, from: string, to: string, destLat?: number, destLon?: number) => {
     setDistance(dist);
     setFromLocation(from);
     setToLocation(to);
     setRouteReady(true);
+    
+    // Store destination coordinates for parking finder
+    if (destLat && destLon) {
+      setDestCoords({ lat: destLat, lon: destLon });
+    }
     
     // Calculate all modes for recommendations
     const results = calculateAllModes(dist);
@@ -162,6 +168,8 @@ export default function DashboardPage() {
             {routeReady && distance >= 3 && (
               <HybridJourneyPlanner
                 distance={distance}
+                destinationLat={destCoords?.lat}
+                destinationLon={destCoords?.lon}
                 userGoals={userStats?.lifestyleGoals}
               />
             )}

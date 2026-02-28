@@ -26,6 +26,7 @@ export default function ComparePage() {
   const [allResults, setAllResults] = useState<ComparisonResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<ComparisonResult | null>(null);
   const [routeCalculated, setRouteCalculated] = useState(false);
+  const [destCoords, setDestCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   // Fetch user stats including lifestyle goals
   const { data: stats } = useSWR(
@@ -35,11 +36,16 @@ export default function ComparePage() {
 
   const userGoals = stats?.data?.lifestyleGoals;
 
-  const handleRouteCalculated = (dist: number, from: string, to: string) => {
+  const handleRouteCalculated = (dist: number, from: string, to: string, destLat?: number, destLon?: number) => {
     setDistance(dist);
     setFromLocation(from);
     setToLocation(to);
     setRouteCalculated(true);
+    
+    // Store destination coordinates for parking finder
+    if (destLat && destLon) {
+      setDestCoords({ lat: destLat, lon: destLon });
+    }
     
     // Calculate all transport modes for this distance
     const results = calculateAllModes(dist);
@@ -80,6 +86,8 @@ export default function ComparePage() {
           {routeCalculated && distance >= 3 && (
             <HybridJourneyPlanner
               distance={distance}
+              destinationLat={destCoords?.lat}
+              destinationLon={destCoords?.lon}
               userGoals={userGoals}
             />
           )}

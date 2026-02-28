@@ -53,7 +53,7 @@ interface SearchResult {
 }
 
 interface MapSelectorProps {
-  onRouteCalculated: (distance: number, from: string, to: string) => void;
+  onRouteCalculated: (distance: number, from: string, to: string, destLat?: number, destLon?: number) => void;
 }
 
 // Component to fit map bounds to route
@@ -227,7 +227,9 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
         onRouteCalculated(
           Math.round(distanceKm * 10) / 10,
           startLocation.address.split(',')[0],
-          endLocation.address.split(',')[0]
+          endLocation.address.split(',')[0],
+          endLocation.lat,
+          endLocation.lng
         );
       }
     } catch (error) {
@@ -241,7 +243,9 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
       onRouteCalculated(
         Math.round(dist * 10) / 10,
         startLocation.address.split(',')[0],
-        endLocation.address.split(',')[0]
+        endLocation.address.split(',')[0],
+        endLocation.lat,
+        endLocation.lng
       );
     } finally {
       setIsLoading(false);

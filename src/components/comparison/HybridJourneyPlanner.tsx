@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TRANSPORT_DATA, TransportMode } from '@/lib/calculations';
+import { ParkingFinder } from '@/components/journey/ParkingFinder';
 
 interface HybridPlan {
   id: string;
@@ -23,6 +25,8 @@ interface HybridPlan {
 
 interface HybridJourneyPlannerProps {
   distance: number;
+  destinationLat?: number;
+  destinationLon?: number;
   userGoals?: {
     walkingGoal: number;
     cyclingGoal: number;
@@ -31,7 +35,9 @@ interface HybridJourneyPlannerProps {
   onSelectPlan?: (plan: HybridPlan) => void;
 }
 
-export function HybridJourneyPlanner({ distance, userGoals, onSelectPlan }: HybridJourneyPlannerProps) {
+export function HybridJourneyPlanner({ distance, destinationLat, destinationLon, userGoals, onSelectPlan }: HybridJourneyPlannerProps) {
+  const [showParking, setShowParking] = useState(false);
+  
   // Don't show for very short distances (walk/bike is better)
   if (distance < 3) return null;
 
@@ -47,6 +53,7 @@ export function HybridJourneyPlanner({ distance, userGoals, onSelectPlan }: Hybr
       const co2 = driveDist * TRANSPORT_DATA.car.co2PerKm;
       const calories = walkDist * TRANSPORT_DATA.walk.calPerKm;
       const time = (driveDist / TRANSPORT_DATA.car.speed + walkDist / TRANSPORT_DATA.walk.speed) * 60;
+
 
       plans.push({
         id: 'park-walk',
@@ -281,6 +288,27 @@ export function HybridJourneyPlanner({ distance, userGoals, onSelectPlan }: Hybr
             You'll save on parking, get exercise, and reduce emissions!
           </div>
         </div>
+
+        {/* Find Parking Button */}
+        <Button
+          onClick={() => setShowParking(!showParking)}
+          variant="outline"
+          className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {showParking ? 'Hide Parking Options' : 'Find Free Parking Near Destination'}
+        </Button>
+
+        {/* Parking Finder */}
+        {showParking && (
+          <ParkingFinder
+            destinationLat={destinationLat}
+            destinationLon={destinationLon}
+          />
+        )}
       </CardContent>
     </Card>
   );
