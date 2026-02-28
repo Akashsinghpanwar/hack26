@@ -9,11 +9,12 @@ import MapSelector from '@/components/journey/MapSelectorWrapper';
 import { TransportSelector } from '@/components/journey/TransportSelector';
 import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
+import { EcoRecommendation } from '@/components/comparison/EcoRecommendation';
 import { SustainabilityScore } from '@/components/gamification/SustainabilityScore';
 import { StreakTracker } from '@/components/gamification/StreakTracker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TransportMode, compareWithCar, ComparisonResult, calculateMetrics } from '@/lib/calculations';
+import { TransportMode, compareWithCar, ComparisonResult, calculateMetrics, calculateAllModes } from '@/lib/calculations';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
+  const [allResults, setAllResults] = useState<ComparisonResult[]>([]);
   const [distance, setDistance] = useState<number>(0);
   const [fromLocation, setFromLocation] = useState<string>('');
   const [toLocation, setToLocation] = useState<string>('');
@@ -44,6 +46,10 @@ export default function DashboardPage() {
     setFromLocation(from);
     setToLocation(to);
     setRouteReady(true);
+    
+    // Calculate all modes for recommendations
+    const results = calculateAllModes(dist);
+    setAllResults(results);
     
     // Calculate for selected mode
     const result = compareWithCar(dist, selectedMode);
@@ -149,6 +155,16 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Map Selector */}
             <MapSelector onRouteCalculated={handleRouteCalculated} />
+
+            {/* Eco Recommendations - Show immediately after route is calculated */}
+            {allResults.length > 0 && (
+              <EcoRecommendation
+                results={allResults}
+                distance={distance}
+                onSelectMode={handleModeSelect}
+                currentMode={selectedMode}
+              />
+            )}
 
             {/* Transport Mode Selection */}
             {routeReady && (

@@ -7,6 +7,7 @@ import { TransportSelector } from '@/components/journey/TransportSelector';
 import { ComparisonChart } from '@/components/comparison/ComparisonChart';
 import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
+import { EcoRecommendation } from '@/components/comparison/EcoRecommendation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -61,6 +62,16 @@ export default function ComparePage() {
         <div className="space-y-8">
           {/* Map Selector */}
           <MapSelector onRouteCalculated={handleRouteCalculated} />
+
+          {/* Eco Recommendations - Show immediately after route is calculated */}
+          {allResults.length > 0 && (
+            <EcoRecommendation
+              results={allResults}
+              distance={distance}
+              onSelectMode={handleModeSelect}
+              currentMode={selectedMode}
+            />
+          )}
 
           {/* Transport Mode Selection - Show after route is calculated */}
           {routeCalculated && (
