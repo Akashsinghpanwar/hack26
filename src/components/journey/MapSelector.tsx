@@ -263,20 +263,42 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
 
   // Get user's current location
   const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          const address = await reverseGeocode(latitude, longitude);
-          setStartLocation({ lat: latitude, lng: longitude, address });
-          setStartSearch(address.split(',')[0]);
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          alert('Could not get your location. Please search manually.');
-        }
-      );
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser. Please search manually.');
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const address = await reverseGeocode(latitude, longitude);
+        setStartLocation({ lat: latitude, lng: longitude, address });
+        setStartSearch(address.split(',')[0]);
+      },
+      (error) => {
+        let message = 'Could not get your location. ';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message += 'Please allow location access in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            message += 'Location request timed out.';
+            break;
+          default:
+            message += 'Please search manually.';
+        }
+        console.error('Geolocation error:', error.code, error.message);
+        alert(message);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes cache
+      }
+    );
   };
 
   return (
