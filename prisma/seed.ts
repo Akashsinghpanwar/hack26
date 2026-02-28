@@ -24,16 +24,16 @@ const achievements = [
 ];
 
 const demoUsers = [
-  { name: 'Priya Sharma', email: 'priya@demo.com' },
-  { name: 'Rahul Kumar', email: 'rahul@demo.com' },
-  { name: 'Ananya Singh', email: 'ananya@demo.com' },
-  { name: 'Vikram Patel', email: 'vikram@demo.com' },
-  { name: 'Neha Gupta', email: 'neha@demo.com' },
-  { name: 'Arjun Reddy', email: 'arjun@demo.com' },
-  { name: 'Kavita Joshi', email: 'kavita@demo.com' },
-  { name: 'Amit Verma', email: 'amit@demo.com' },
-  { name: 'Sneha Nair', email: 'sneha@demo.com' },
-  { name: 'Rohan Das', email: 'rohan@demo.com' },
+  { name: 'Emma Wilson', email: 'emma@demo.com' },
+  { name: 'James Miller', email: 'james@demo.com' },
+  { name: 'Olivia Brown', email: 'olivia@demo.com' },
+  { name: 'William Davis', email: 'william@demo.com' },
+  { name: 'Sophia Taylor', email: 'sophia@demo.com' },
+  { name: 'Benjamin Clark', email: 'benjamin@demo.com' },
+  { name: 'Isabella Moore', email: 'isabella@demo.com' },
+  { name: 'Lucas Anderson', email: 'lucas@demo.com' },
+  { name: 'Mia Thompson', email: 'mia@demo.com' },
+  { name: 'Henry White', email: 'henry@demo.com' },
 ];
 
 const transportModes = [
