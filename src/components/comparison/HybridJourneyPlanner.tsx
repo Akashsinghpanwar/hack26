@@ -67,7 +67,7 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
         totalCalories: Math.round(calories),
         totalTime: Math.round(time),
         co2Saved: Math.round((carCo2 - co2) * 100) / 100,
-        badge: '🚶 Active Finish',
+        badge: 'Active Finish',
         recommended: Boolean(userGoals?.walkingGoal && userGoals.walkingGoal > 0),
       });
     }
@@ -92,7 +92,7 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
         totalCalories: Math.round(calories),
         totalTime: Math.round(time),
         co2Saved: Math.round((carCo2 - co2) * 100) / 100,
-        badge: '🚴 Fitness Boost',
+        badge: 'Fitness Boost',
         recommended: Boolean(userGoals?.cyclingGoal && userGoals.cyclingGoal > 0),
       });
     }
@@ -118,7 +118,7 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
         totalCalories: Math.round(calories),
         totalTime: Math.round(time),
         co2Saved: Math.round((carCo2 - co2) * 100) / 100,
-        badge: '🌍 Eco Hero',
+        badge: 'Eco Hero',
       });
     }
 
@@ -142,7 +142,7 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
         totalCalories: Math.round(calories),
         totalTime: Math.round(time),
         co2Saved: Math.round((carCo2 - co2) * 100) / 100,
-        badge: '🏃 Cardio Commute',
+        badge: 'Cardio Commute',
         recommended: true,
       });
     }
@@ -167,7 +167,7 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
         totalCalories: Math.round(calories),
         totalTime: Math.round(time),
         co2Saved: Math.round((carCo2 - co2) * 100) / 100,
-        badge: '⚡ Speed + Eco',
+        badge: 'Speed + Eco',
       });
     }
 
@@ -183,117 +183,104 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
 
   if (plans.length === 0) return null;
 
-  const modeIcons: Record<TransportMode, string> = {
-    car: '🚗',
-    bus: '🚌',
-    train: '🚆',
-    bike: '🚴',
-    walk: '🚶',
-    ebike: '⚡',
+  const modeColors: Record<TransportMode, string> = {
+    car: 'bg-rose-500',
+    bus: 'bg-amber-500',
+    train: 'bg-yellow-500',
+    bike: 'bg-emerald-500',
+    walk: 'bg-green-500',
+    ebike: 'bg-cyan-500',
+  };
+
+  const modeLabels: Record<TransportMode, string> = {
+    car: 'Drive',
+    bus: 'Bus',
+    train: 'Train',
+    bike: 'Bike',
+    walk: 'Walk',
+    ebike: 'E-bike',
   };
 
   return (
-    <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-purple-800">
-          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          Hybrid Journey Plans
-          <span className="ml-2 text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
-            Smart Split
-          </span>
+    <Card className="border-0 shadow-xl bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden">
+      <CardHeader className="pb-3 border-b border-violet-100 bg-gradient-to-r from-violet-500 to-purple-600 text-white">
+        <CardTitle className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-lg font-semibold">Hybrid Journey Plans</span>
+            <p className="text-violet-200 text-sm font-normal">Split your {distance}km trip smartly</p>
+          </div>
         </CardTitle>
-        <p className="text-sm text-purple-600 mt-1">
-          Split your {distance}km journey for maximum fitness + minimum emissions
-        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-4">
+      <CardContent className="p-5 space-y-4">
+        <div className="space-y-3">
           {plans.slice(0, 3).map((plan) => (
             <div
               key={plan.id}
-              className={`relative p-4 rounded-xl border-2 transition-all hover:shadow-md cursor-pointer ${
+              className={`relative p-4 rounded-xl border transition-all hover:shadow-lg cursor-pointer ${
                 plan.recommended
-                  ? 'border-purple-400 bg-white shadow-sm'
-                  : 'border-purple-100 bg-white/70 hover:border-purple-300'
+                  ? 'border-violet-300 bg-white shadow-md ring-2 ring-violet-200'
+                  : 'border-slate-200 bg-white hover:border-violet-300'
               }`}
               onClick={() => onSelectPlan?.(plan)}
             >
               {plan.recommended && (
-                <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
-                  Recommended
+                <div className="absolute -top-2.5 left-4 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-sm">
+                  Recommended for you
                 </div>
               )}
 
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-3 mt-1">
                 <div>
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    {plan.name}
-                    <span className="text-sm">{plan.badge}</span>
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
+                  <h3 className="font-semibold text-lg text-slate-800">{plan.name}</h3>
+                  <p className="text-sm text-slate-500">{plan.description}</p>
                 </div>
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+                  {plan.badge}
+                </span>
               </div>
 
               {/* Journey Segments Visual */}
-              <div className="flex h-8 rounded-full overflow-hidden mb-3">
+              <div className="flex h-10 rounded-xl overflow-hidden mb-4 shadow-inner">
                 {plan.segments.map((segment, idx) => (
                   <div
                     key={idx}
-                    className={`flex items-center justify-center text-white text-xs font-medium ${
-                      segment.mode === 'car'
-                        ? 'bg-red-400'
-                        : segment.mode === 'walk'
-                        ? 'bg-green-500'
-                        : segment.mode === 'bike'
-                        ? 'bg-emerald-500'
-                        : segment.mode === 'ebike'
-                        ? 'bg-cyan-500'
-                        : segment.mode === 'bus'
-                        ? 'bg-orange-400'
-                        : 'bg-yellow-500'
-                    }`}
+                    className={`flex items-center justify-center text-white text-xs font-semibold ${modeColors[segment.mode]}`}
                     style={{ width: `${segment.percentage}%` }}
                   >
-                    {modeIcons[segment.mode]} {segment.percentage}%
+                    <span className="truncate px-1">{modeLabels[segment.mode]} {segment.percentage}%</span>
                   </div>
                 ))}
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-green-50 rounded-lg p-2">
-                  <div className="text-lg font-bold text-green-600">{plan.co2Saved}kg</div>
-                  <div className="text-xs text-green-700">CO2 Saved</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
+                  <div className="text-xl font-bold text-emerald-600">{plan.co2Saved}</div>
+                  <div className="text-xs text-emerald-700 font-medium">kg CO2 saved</div>
                 </div>
-                <div className="bg-orange-50 rounded-lg p-2">
-                  <div className="text-lg font-bold text-orange-600">{plan.totalCalories}</div>
-                  <div className="text-xs text-orange-700">Calories</div>
+                <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+                  <div className="text-xl font-bold text-orange-600">{plan.totalCalories}</div>
+                  <div className="text-xs text-orange-700 font-medium">calories</div>
                 </div>
-                <div className="bg-blue-50 rounded-lg p-2">
-                  <div className="text-lg font-bold text-blue-600">{plan.totalTime}m</div>
-                  <div className="text-xs text-blue-700">Total Time</div>
+                <div className="bg-sky-50 rounded-xl p-3 text-center border border-sky-100">
+                  <div className="text-xl font-bold text-sky-600">{plan.totalTime}</div>
+                  <div className="text-xs text-sky-700 font-medium">minutes</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Quick tip */}
-        <div className="flex items-start gap-3 p-3 bg-purple-100 rounded-lg">
-          <span className="text-xl">💡</span>
-          <div className="text-sm text-purple-800">
-            <strong>Pro tip:</strong> Park at a designated spot and complete your journey actively. 
-            You'll save on parking, get exercise, and reduce emissions!
-          </div>
-        </div>
-
         {/* Find Parking Button */}
         <Button
           onClick={() => setShowParking(!showParking)}
           variant="outline"
-          className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+          className="w-full border-sky-200 text-sky-700 hover:bg-sky-50 hover:border-sky-300 h-11"
         >
           <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,36 +9,29 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
-// Fix Leaflet default marker icon issue
-const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// Custom SVG markers - professional look
+const createCustomIcon = (color: string, type: 'start' | 'end') => {
+  const svg = type === 'start' 
+    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
+        <circle cx="12" cy="12" r="10" fill="${color}" stroke="white" stroke-width="2"/>
+        <circle cx="12" cy="12" r="4" fill="white"/>
+      </svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="28" height="42">
+        <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="${color}" stroke="white" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="5" fill="white"/>
+      </svg>`;
+  
+  return L.divIcon({
+    html: svg,
+    className: 'custom-marker',
+    iconSize: type === 'start' ? [32, 32] : [28, 42],
+    iconAnchor: type === 'start' ? [16, 16] : [14, 42],
+    popupAnchor: [0, type === 'start' ? -16 : -42],
+  });
+};
 
-const StartIcon = L.icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const EndIcon = L.icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
+const StartIcon = createCustomIcon('#10b981', 'start'); // Emerald green
+const EndIcon = createCustomIcon('#ef4444', 'end'); // Red
 
 interface Location {
   lat: number;
@@ -66,7 +59,7 @@ function FitBounds({ start, end }: { start: Location | null; end: Location | nul
         [start.lat, start.lng],
         [end.lat, end.lng]
       ]);
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [60, 60] });
     } else if (start) {
       map.setView([start.lat, start.lng], 14);
     } else if (end) {
@@ -87,6 +80,16 @@ function MapClickHandler({
   selectingStart: boolean;
   selectingEnd: boolean;
 }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (selectingStart || selectingEnd) {
+      map.getContainer().style.cursor = 'crosshair';
+    } else {
+      map.getContainer().style.cursor = '';
+    }
+  }, [selectingStart, selectingEnd, map]);
+
   useMapEvents({
     click: (e) => {
       if (selectingStart || selectingEnd) {
@@ -96,6 +99,45 @@ function MapClickHandler({
   });
   return null;
 }
+
+// Icons as SVG components
+const Icons = {
+  location: () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  crosshair: () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="10" strokeWidth={2}/>
+      <line x1="12" y1="2" x2="12" y2="6" strokeWidth={2}/>
+      <line x1="12" y1="18" x2="12" y2="22" strokeWidth={2}/>
+      <line x1="2" y1="12" x2="6" y2="12" strokeWidth={2}/>
+      <line x1="18" y1="12" x2="22" y2="12" strokeWidth={2}/>
+    </svg>
+  ),
+  route: () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+    </svg>
+  ),
+  map: () => (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+    </svg>
+  ),
+  navigation: () => (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+    </svg>
+  ),
+  clock: () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+};
 
 export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
   const [startLocation, setStartLocation] = useState<Location | null>(null);
@@ -185,14 +227,13 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
   // Handle map click
   const handleMapClick = async (lat: number, lng: number) => {
     const address = await reverseGeocode(lat, lng);
-    const location: Location = { lat, lng, address };
-
+    
     if (selectingStart) {
-      setStartLocation(location);
+      setStartLocation({ lat, lng, address });
       setStartSearch(address.split(',')[0]);
       setSelectingStart(false);
     } else if (selectingEnd) {
-      setEndLocation(location);
+      setEndLocation({ lat, lng, address });
       setEndSearch(address.split(',')[0]);
       setSelectingEnd(false);
     }
@@ -201,19 +242,18 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
   // Calculate route using OSRM
   const calculateRoute = async () => {
     if (!startLocation || !endLocation) return;
-
+    
     setIsLoading(true);
     try {
-      // Using OSRM Demo server for routing
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${startLocation.lng},${startLocation.lat};${endLocation.lng},${endLocation.lat}?overview=full&geometries=geojson`
       );
       const data = await response.json();
-
+      
       if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
         const coords: [number, number][] = route.geometry.coordinates.map(
-          (coord: [number, number]) => [coord[1], coord[0]] // Swap lng,lat to lat,lng
+          (coord: [number, number]) => [coord[1], coord[0]]
         );
         setRouteCoords(coords);
         
@@ -223,7 +263,6 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
         setDistance(distanceKm);
         setDuration(durationMin);
         
-        // Notify parent component
         onRouteCalculated(
           Math.round(distanceKm * 10) / 10,
           startLocation.address.split(',')[0],
@@ -234,7 +273,6 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
       }
     } catch (error) {
       console.error('Route calculation error:', error);
-      // Fallback to straight-line distance
       const dist = calculateStraightLineDistance(
         startLocation.lat, startLocation.lng,
         endLocation.lat, endLocation.lng
@@ -254,7 +292,7 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
 
   // Calculate straight-line distance (Haversine formula)
   const calculateStraightLineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = 
@@ -265,10 +303,10 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
     return R * c;
   };
 
-  // Get user's current location
+  // Get current location
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser. Please search manually.');
+      alert('Geolocation is not supported by your browser.');
       return;
     }
 
@@ -283,81 +321,87 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
         let message = 'Could not get your location. ';
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            message += 'Please allow location access in your browser settings.';
+            message += 'Please allow location access.';
             break;
           case error.POSITION_UNAVAILABLE:
-            message += 'Location information is unavailable.';
+            message += 'Location unavailable.';
             break;
           case error.TIMEOUT:
-            message += 'Location request timed out.';
+            message += 'Request timed out.';
             break;
-          default:
-            message += 'Please search manually.';
         }
-        console.error('Geolocation error:', error.code, error.message);
         alert(message);
       },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes cache
-      }
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">🗺️</span>
-          Select Your Route
+    <Card className="w-full overflow-hidden border-0 shadow-xl bg-gradient-to-br from-white to-slate-50">
+      <CardHeader className="border-b bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+        <CardTitle className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+            <Icons.map />
+          </div>
+          <div>
+            <span className="text-xl font-semibold">Route Planner</span>
+            <p className="text-emerald-100 text-sm font-normal mt-0.5">Select start and destination</p>
+          </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-6 space-y-5">
         {/* Search inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Start Location */}
           <div className="space-y-2 relative">
-            <Label className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-green-500"></span>
-              Start Location
+            <Label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-emerald-200"></span>
+              Starting Point
             </Label>
             <div className="flex gap-2">
-              <Input
-                value={startSearch}
-                onChange={(e) => handleSearchChange(e.target.value, true)}
-                placeholder="Search start address..."
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Input
+                  value={startSearch}
+                  onChange={(e) => handleSearchChange(e.target.value, true)}
+                  placeholder="Enter starting address..."
+                  className="pl-10 h-11 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icons.location />
+                </div>
+              </div>
               <Button 
                 variant="outline" 
-                size="sm"
+                size="icon"
+                className="h-11 w-11 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600"
                 onClick={getCurrentLocation}
                 title="Use my location"
               >
-                📍
+                <Icons.navigation />
               </Button>
               <Button 
                 variant={selectingStart ? "default" : "outline"}
-                size="sm"
+                size="icon"
+                className={`h-11 w-11 ${selectingStart ? 'bg-emerald-500 hover:bg-emerald-600' : 'border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-600'}`}
                 onClick={() => {
                   setSelectingStart(!selectingStart);
                   setSelectingEnd(false);
                 }}
                 title="Select on map"
               >
-                🎯
+                <Icons.crosshair />
               </Button>
             </div>
             {startResults.length > 0 && (
-              <div className="absolute z-[1000] w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+              <div className="absolute z-[1000] w-full bg-white border border-slate-200 rounded-xl shadow-xl mt-1 max-h-52 overflow-y-auto">
                 {startResults.map((result, index) => (
                   <button
                     key={index}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm border-b last:border-b-0"
+                    className="w-full text-left px-4 py-3 hover:bg-emerald-50 text-sm border-b border-slate-100 last:border-b-0 flex items-start gap-3 transition-colors"
                     onClick={() => selectLocation(result, true)}
                   >
-                    {result.display_name}
+                    <span className="text-emerald-500 mt-0.5"><Icons.location /></span>
+                    <span className="text-slate-700">{result.display_name}</span>
                   </button>
                 ))}
               </div>
@@ -366,38 +410,45 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
 
           {/* End Location */}
           <div className="space-y-2 relative">
-            <Label className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500"></span>
+            <Label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <span className="w-3 h-3 rounded-full bg-red-500 ring-2 ring-red-200"></span>
               Destination
             </Label>
             <div className="flex gap-2">
-              <Input
-                value={endSearch}
-                onChange={(e) => handleSearchChange(e.target.value, false)}
-                placeholder="Search destination..."
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Input
+                  value={endSearch}
+                  onChange={(e) => handleSearchChange(e.target.value, false)}
+                  placeholder="Enter destination..."
+                  className="pl-10 h-11 border-slate-200 focus:border-red-500 focus:ring-red-500"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icons.location />
+                </div>
+              </div>
               <Button 
                 variant={selectingEnd ? "default" : "outline"}
-                size="sm"
+                size="icon"
+                className={`h-11 w-11 ${selectingEnd ? 'bg-red-500 hover:bg-red-600' : 'border-slate-200 hover:bg-red-50 hover:border-red-300 hover:text-red-600'}`}
                 onClick={() => {
                   setSelectingEnd(!selectingEnd);
                   setSelectingStart(false);
                 }}
                 title="Select on map"
               >
-                🎯
+                <Icons.crosshair />
               </Button>
             </div>
             {endResults.length > 0 && (
-              <div className="absolute z-[1000] w-full bg-white border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+              <div className="absolute z-[1000] w-full bg-white border border-slate-200 rounded-xl shadow-xl mt-1 max-h-52 overflow-y-auto">
                 {endResults.map((result, index) => (
                   <button
                     key={index}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm border-b last:border-b-0"
+                    className="w-full text-left px-4 py-3 hover:bg-red-50 text-sm border-b border-slate-100 last:border-b-0 flex items-start gap-3 transition-colors"
                     onClick={() => selectLocation(result, false)}
                   >
-                    {result.display_name}
+                    <span className="text-red-500 mt-0.5"><Icons.location /></span>
+                    <span className="text-slate-700">{result.display_name}</span>
                   </button>
                 ))}
               </div>
@@ -407,21 +458,32 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
 
         {/* Selection mode indicator */}
         {(selectingStart || selectingEnd) && (
-          <div className="p-2 bg-blue-50 text-blue-700 rounded-lg text-sm text-center">
-            Click on the map to select {selectingStart ? 'start' : 'destination'} location
+          <div className={`p-3 rounded-xl text-sm text-center font-medium flex items-center justify-center gap-2 ${
+            selectingStart 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            <Icons.crosshair />
+            Click anywhere on the map to set {selectingStart ? 'starting point' : 'destination'}
           </div>
         )}
 
-        {/* Map */}
-        <div className="h-[400px] rounded-lg overflow-hidden border">
+        {/* Map Container */}
+        <div className="relative h-[420px] rounded-2xl overflow-hidden shadow-lg ring-1 ring-slate-200">
+          {/* Map overlay gradient */}
+          <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/10 to-transparent z-[400] pointer-events-none"></div>
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/10 to-transparent z-[400] pointer-events-none"></div>
+          
           <MapContainer
-            center={[20.5937, 78.9629]} // India center
+            center={[20.5937, 78.9629]}
             zoom={5}
             style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
           >
+            {/* Modern map tiles - CartoDB Voyager */}
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
             
             <MapClickHandler 
@@ -434,65 +496,88 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
             
             {startLocation && (
               <Marker position={[startLocation.lat, startLocation.lng]} icon={StartIcon}>
-                <Popup>
-                  <strong>Start:</strong><br />
-                  {startLocation.address.split(',').slice(0, 2).join(', ')}
+                <Popup className="custom-popup">
+                  <div className="font-semibold text-emerald-600">Start</div>
+                  <div className="text-sm text-slate-600">{startLocation.address.split(',').slice(0, 2).join(', ')}</div>
                 </Popup>
               </Marker>
             )}
             
             {endLocation && (
               <Marker position={[endLocation.lat, endLocation.lng]} icon={EndIcon}>
-                <Popup>
-                  <strong>Destination:</strong><br />
-                  {endLocation.address.split(',').slice(0, 2).join(', ')}
+                <Popup className="custom-popup">
+                  <div className="font-semibold text-red-600">Destination</div>
+                  <div className="text-sm text-slate-600">{endLocation.address.split(',').slice(0, 2).join(', ')}</div>
                 </Popup>
               </Marker>
             )}
             
             {routeCoords.length > 0 && (
-              <Polyline
-                positions={routeCoords}
-                color="#22c55e"
-                weight={4}
-                opacity={0.8}
-              />
+              <>
+                {/* Route shadow */}
+                <Polyline
+                  positions={routeCoords}
+                  color="#000"
+                  weight={8}
+                  opacity={0.15}
+                />
+                {/* Main route */}
+                <Polyline
+                  positions={routeCoords}
+                  color="#10b981"
+                  weight={5}
+                  opacity={1}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              </>
             )}
           </MapContainer>
         </div>
 
         {/* Calculate button and results */}
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-5">
           <Button
             onClick={calculateRoute}
             disabled={!startLocation || !endLocation || isLoading}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 h-12 px-8 text-base"
             size="lg"
           >
             {isLoading ? (
               <>
-                <span className="animate-spin mr-2">⏳</span>
-                Calculating...
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Calculating Route...
               </>
             ) : (
               <>
-                <span className="mr-2">📏</span>
-                Calculate Route
+                <Icons.route />
+                <span className="ml-2">Calculate Route</span>
               </>
             )}
           </Button>
 
           {distance !== null && (
-            <div className="flex gap-6 items-center">
+            <div className="flex gap-6 items-center bg-slate-50 rounded-xl px-6 py-3">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary">{distance.toFixed(1)}</div>
-                <div className="text-sm text-muted-foreground">km distance</div>
+                <div className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+                  {distance.toFixed(1)}
+                </div>
+                <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Kilometers</div>
               </div>
               {duration !== null && (
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{Math.round(duration)}</div>
-                  <div className="text-sm text-muted-foreground">min by car</div>
-                </div>
+                <>
+                  <div className="w-px h-10 bg-slate-200"></div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-slate-700 flex items-center gap-1">
+                      <Icons.clock />
+                      {Math.round(duration)}
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Minutes</div>
+                  </div>
+                </>
               )}
             </div>
           )}
