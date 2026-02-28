@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import useSWR from 'swr';
 import { Navbar } from '@/components/Navbar';
 import MapSelector from '@/components/journey/MapSelectorWrapper';
 import { TransportSelector } from '@/components/journey/TransportSelector';
@@ -8,12 +10,15 @@ import { ComparisonChart } from '@/components/comparison/ComparisonChart';
 import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
 import { EcoRecommendation } from '@/components/comparison/EcoRecommendation';
+import { HybridJourneyPlanner } from '@/components/comparison/HybridJourneyPlanner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { TransportMode, calculateAllModes, compareWithCar, ComparisonResult, TRANSPORT_DATA } from '@/lib/calculations';
+import { TransportMode, calculateAllModes, ComparisonResult, TRANSPORT_DATA } from '@/lib/calculations';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function ComparePage() {
+  const { data: session, status } = useSession();
   const [distance, setDistance] = useState<number>(0);
   const [fromLocation, setFromLocation] = useState<string>('');
   const [toLocation, setToLocation] = useState<string>('');
@@ -21,6 +26,14 @@ export default function ComparePage() {
   const [allResults, setAllResults] = useState<ComparisonResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<ComparisonResult | null>(null);
   const [routeCalculated, setRouteCalculated] = useState(false);
+
+  // Fetch user stats including lifestyle goals
+  const { data: stats } = useSWR(
+    status === 'authenticated' ? '/api/user/stats' : null,
+    fetcher
+  );
+
+  const userGoals = stats?.data?.lifestyleGoals;
 
   const handleRouteCalculated = (dist: number, from: string, to: string) => {
     setDistance(dist);
@@ -62,6 +75,14 @@ export default function ComparePage() {
         <div className="space-y-8">
           {/* Map Selector */}
           <MapSelector onRouteCalculated={handleRouteCalculated} />
+
+          {/* Hybrid Journey Planner - Show for longer distances */}
+          {routeCalculated && distance >= 3 && (
+            <HybridJourneyPlanner
+              distance={distance}
+              userGoals={userGoals}
+            />
+          )}
 
           {/* Eco Recommendations - Show immediately after route is calculated */}
           {allResults.length > 0 && (

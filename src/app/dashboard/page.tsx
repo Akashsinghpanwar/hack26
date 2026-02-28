@@ -10,6 +10,7 @@ import { TransportSelector } from '@/components/journey/TransportSelector';
 import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
 import { EcoRecommendation } from '@/components/comparison/EcoRecommendation';
+import { HybridJourneyPlanner } from '@/components/comparison/HybridJourneyPlanner';
 import { SustainabilityScore } from '@/components/gamification/SustainabilityScore';
 import { StreakTracker } from '@/components/gamification/StreakTracker';
 import { GoalProgress } from '@/components/gamification/GoalProgress';
@@ -156,6 +157,14 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Map Selector */}
             <MapSelector onRouteCalculated={handleRouteCalculated} />
+
+            {/* Hybrid Journey Planner - Smart Split Options */}
+            {routeReady && distance >= 3 && (
+              <HybridJourneyPlanner
+                distance={distance}
+                userGoals={userStats?.lifestyleGoals}
+              />
+            )}
 
             {/* Eco Recommendations - Show immediately after route is calculated */}
             {allResults.length > 0 && (
