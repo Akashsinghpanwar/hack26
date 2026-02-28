@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { Navbar } from '@/components/Navbar';
-import { JourneyInput } from '@/components/journey/JourneyInput';
+import MapSelector from '@/components/journey/MapSelectorWrapper';
+import { TransportSelector } from '@/components/journey/TransportSelector';
 import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
 import { SustainabilityScore } from '@/components/gamification/SustainabilityScore';
 import { StreakTracker } from '@/components/gamification/StreakTracker';
-import { TransportMode, compareWithCar, ComparisonResult } from '@/lib/calculations';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { TransportMode, compareWithCar, ComparisonResult, calculateMetrics } from '@/lib/calculations';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -18,7 +21,12 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
-  const [distance, setDistance] = useState<number>(10);
+  const [distance, setDistance] = useState<number>(0);
+  const [fromLocation, setFromLocation] = useState<string>('');
+  const [toLocation, setToLocation] = useState<string>('');
+  const [selectedMode, setSelectedMode] = useState<TransportMode>('bike');
+  const [routeReady, setRouteReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const { data: stats, mutate: mutateStats } = useSWR(
     status === 'authenticated' ? '/api/user/stats' : null,
@@ -31,31 +39,54 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
-  const handleCalculate = (dist: number, mode: TransportMode) => {
+  const handleRouteCalculated = (dist: number, from: string, to: string) => {
     setDistance(dist);
-    const result = compareWithCar(dist, mode);
+    setFromLocation(from);
+    setToLocation(to);
+    setRouteReady(true);
+    
+    // Calculate for selected mode
+    const result = compareWithCar(dist, selectedMode);
     setComparisonResult(result);
   };
 
-  const handleSaveJourney = async (dist: number, mode: TransportMode, from?: string, to?: string) => {
+  const handleModeSelect = (mode: TransportMode) => {
+    setSelectedMode(mode);
+    if (distance > 0) {
+      const result = compareWithCar(distance, mode);
+      setComparisonResult(result);
+    }
+  };
+
+  const handleSaveJourney = async () => {
+    if (!routeReady || distance <= 0) return;
+    
+    setSaving(true);
     try {
       const response = await fetch('/api/journeys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          distance: dist,
-          transportMode: mode,
-          fromLocation: from,
-          toLocation: to
+          distance,
+          transportMode: selectedMode,
+          fromLocation,
+          toLocation
         }),
       });
 
       if (response.ok) {
         mutateStats();
-        alert('Journey saved successfully!');
+        alert('Journey saved successfully! Check your history.');
+        // Reset for new journey
+        setRouteReady(false);
+        setComparisonResult(null);
+        setDistance(0);
       }
     } catch (error) {
       console.error('Error saving journey:', error);
+      alert('Failed to save journey. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -116,11 +147,51 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            <JourneyInput 
-              onCalculate={handleCalculate}
-              onSave={handleSaveJourney}
-            />
+            {/* Map Selector */}
+            <MapSelector onRouteCalculated={handleRouteCalculated} />
 
+            {/* Transport Mode Selection */}
+            {routeReady && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="text-2xl">🚀</span>
+                      How will you travel?
+                    </span>
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {fromLocation} → {toLocation}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <TransportSelector
+                    selected={selectedMode}
+                    onSelect={handleModeSelect}
+                  />
+                  <Button 
+                    onClick={handleSaveJourney}
+                    disabled={saving}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {saving ? (
+                      <>
+                        <span className="animate-spin mr-2">⏳</span>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-2">💾</span>
+                        Save This Journey
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Impact Summary */}
             {comparisonResult && (
               <ImpactSummary result={comparisonResult} distance={distance} />
             )}

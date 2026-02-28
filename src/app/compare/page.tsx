@@ -2,26 +2,46 @@
 
 import { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { JourneyInput } from '@/components/journey/JourneyInput';
+import MapSelector from '@/components/journey/MapSelectorWrapper';
+import { TransportSelector } from '@/components/journey/TransportSelector';
 import { ComparisonChart } from '@/components/comparison/ComparisonChart';
 import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TransportMode, calculateAllModes, compareWithCar, ComparisonResult } from '@/lib/calculations';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { TransportMode, calculateAllModes, compareWithCar, ComparisonResult, TRANSPORT_DATA } from '@/lib/calculations';
 
 export default function ComparePage() {
-  const [distance, setDistance] = useState<number>(10);
+  const [distance, setDistance] = useState<number>(0);
+  const [fromLocation, setFromLocation] = useState<string>('');
+  const [toLocation, setToLocation] = useState<string>('');
   const [selectedMode, setSelectedMode] = useState<TransportMode>('bike');
   const [allResults, setAllResults] = useState<ComparisonResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<ComparisonResult | null>(null);
+  const [routeCalculated, setRouteCalculated] = useState(false);
 
-  const handleCalculate = (dist: number, mode: TransportMode) => {
+  const handleRouteCalculated = (dist: number, from: string, to: string) => {
     setDistance(dist);
-    setSelectedMode(mode);
+    setFromLocation(from);
+    setToLocation(to);
+    setRouteCalculated(true);
+    
+    // Calculate all transport modes for this distance
     const results = calculateAllModes(dist);
     setAllResults(results);
-    const result = results.find(r => r.mode === mode) || null;
+    
+    // Set selected result based on current mode
+    const result = results.find(r => r.mode === selectedMode) || null;
     setSelectedResult(result);
+  };
+
+  const handleModeSelect = (mode: TransportMode) => {
+    setSelectedMode(mode);
+    if (allResults.length > 0) {
+      const result = allResults.find(r => r.mode === mode) || null;
+      setSelectedResult(result);
+    }
   };
 
   return (
@@ -34,53 +54,67 @@ export default function ComparePage() {
             <span>⚖️</span> Compare Transport Modes
           </h1>
           <p className="text-muted-foreground mt-1">
-            See how different transport options compare for your journey.
+            Select your route on the map and compare different transport options.
           </p>
         </div>
 
         <div className="space-y-8">
-          <JourneyInput 
-            onCalculate={handleCalculate}
-            showSaveButton={false}
-          />
+          {/* Map Selector */}
+          <MapSelector onRouteCalculated={handleRouteCalculated} />
+
+          {/* Transport Mode Selection - Show after route is calculated */}
+          {routeCalculated && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="text-2xl">🚀</span>
+                    Select Your Transport Mode
+                  </span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {fromLocation} → {toLocation} ({distance} km)
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TransportSelector
+                  selected={selectedMode}
+                  onSelect={handleModeSelect}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {allResults.length > 0 && (
             <>
-              {/* Metrics Cards */}
+              {/* Quick Comparison Cards */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {allResults.map((result) => (
-                  <div
-                    key={result.mode}
-                    onClick={() => setSelectedResult(result)}
-                    className={`cursor-pointer transition-all ${
-                      selectedResult?.mode === result.mode 
-                        ? 'ring-2 ring-primary ring-offset-2' 
-                        : 'hover:shadow-lg'
-                    }`}
-                  >
-                    <MetricsCard
-                      title={result.mode.charAt(0).toUpperCase() + result.mode.slice(1)}
-                      value={result.metrics.co2Emissions}
-                      unit="kg CO2"
-                      icon={
-                        result.mode === 'car' ? '🚗' :
-                        result.mode === 'bus' ? '🚌' :
-                        result.mode === 'train' ? '🚆' :
-                        result.mode === 'bike' ? '🚲' :
-                        result.mode === 'walk' ? '🚶' : '⚡'
-                      }
-                      comparison={
-                        result.mode !== 'car' 
-                          ? `${result.metrics.travelTime} min` 
-                          : `${result.metrics.travelTime} min`
-                      }
-                      comparisonColor={result.mode === 'car' ? 'red' : 'green'}
-                    />
-                  </div>
-                ))}
+                {allResults.map((result) => {
+                  const transportData = TRANSPORT_DATA[result.mode];
+                  return (
+                    <div
+                      key={result.mode}
+                      onClick={() => handleModeSelect(result.mode)}
+                      className={`cursor-pointer transition-all ${
+                        selectedResult?.mode === result.mode 
+                          ? 'ring-2 ring-primary ring-offset-2 scale-105' 
+                          : 'hover:shadow-lg hover:scale-102'
+                      }`}
+                    >
+                      <MetricsCard
+                        title={transportData.label}
+                        value={result.metrics.co2Emissions}
+                        unit="kg CO2"
+                        icon={transportData.icon}
+                        comparison={`${result.metrics.travelTime} min`}
+                        comparisonColor={result.mode === 'car' ? 'red' : 'green'}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Charts */}
+              {/* Detailed Charts */}
               <Tabs defaultValue="co2" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 max-w-md">
                   <TabsTrigger value="co2">CO2 Emissions</TabsTrigger>
@@ -98,7 +132,7 @@ export default function ComparePage() {
                 </TabsContent>
               </Tabs>
 
-              {/* Selected Mode Summary */}
+              {/* Selected Mode Impact Summary */}
               {selectedResult && (
                 <ImpactSummary result={selectedResult} distance={distance} />
               )}
