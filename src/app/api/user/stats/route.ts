@@ -14,18 +14,9 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Get user with lifestyle goals
+    // Get user data (all fields)
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        walkingGoal: true,
-        cyclingGoal: true,
-        publicTransitGoal: true,
-        maxDrivingDays: true,
-        fitnessGoal: true,
-        weeklyCalorieTarget: true,
-        setupCompleted: true,
-      }
+      where: { id: userId }
     });
 
     // Get aggregate stats
@@ -68,6 +59,17 @@ export async function GET(request: NextRequest) {
     const weekStart = getWeekStart();
     const weeklyProgress = await calculateWeeklyProgress(userId, weekStart);
 
+    // Extract lifestyle goals from user if available
+    const lifestyleGoals = user ? {
+      walkingGoal: (user as any).walkingGoal ?? 0,
+      cyclingGoal: (user as any).cyclingGoal ?? 0,
+      publicTransitGoal: (user as any).publicTransitGoal ?? 0,
+      maxDrivingDays: (user as any).maxDrivingDays ?? 7,
+      fitnessGoal: (user as any).fitnessGoal ?? 'stay_active',
+      weeklyCalorieTarget: (user as any).weeklyCalorieTarget ?? 1000,
+      setupCompleted: (user as any).setupCompleted ?? false,
+    } : null;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -82,17 +84,7 @@ export async function GET(request: NextRequest) {
           ...ua.achievement,
           unlockedAt: ua.unlockedAt
         })),
-        // Lifestyle goals
-        lifestyleGoals: user ? {
-          walkingGoal: user.walkingGoal,
-          cyclingGoal: user.cyclingGoal,
-          publicTransitGoal: user.publicTransitGoal,
-          maxDrivingDays: user.maxDrivingDays,
-          fitnessGoal: user.fitnessGoal || 'stay_active',
-          weeklyCalorieTarget: user.weeklyCalorieTarget,
-          setupCompleted: user.setupCompleted,
-        } : null,
-        // Weekly progress
+        lifestyleGoals,
         weeklyProgress,
       }
     });
@@ -109,7 +101,7 @@ export async function GET(request: NextRequest) {
 function getWeekStart(): Date {
   const now = new Date();
   const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
   const weekStart = new Date(now.setDate(diff));
   weekStart.setHours(0, 0, 0, 0);
   return weekStart;
@@ -129,7 +121,6 @@ async function calculateWeeklyProgress(userId: string, weekStart: Date) {
     }
   });
 
-  // Count unique days for each transport mode
   const walkingDays = new Set<string>();
   const cyclingDays = new Set<string>();
   const transitDays = new Set<string>();

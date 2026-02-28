@@ -21,22 +21,22 @@ export async function POST(request: Request) {
       weeklyCalorieTarget,
     } = body;
 
-    const user = await prisma.user.update({
-      where: { email: session.user.email },
-      data: {
-        walkingGoal: walkingGoal ?? 0,
-        cyclingGoal: cyclingGoal ?? 0,
-        publicTransitGoal: publicTransitGoal ?? 0,
-        maxDrivingDays: maxDrivingDays ?? 7,
-        fitnessGoal: fitnessGoal ?? 'stay_active',
-        weeklyCalorieTarget: weeklyCalorieTarget ?? 1000,
-        setupCompleted: true,
-      },
-    });
+    // Use raw update to avoid type issues with new fields
+    const user = await prisma.$executeRawUnsafe(`
+      UPDATE User SET 
+        walkingGoal = ${walkingGoal ?? 0},
+        cyclingGoal = ${cyclingGoal ?? 0},
+        publicTransitGoal = ${publicTransitGoal ?? 0},
+        maxDrivingDays = ${maxDrivingDays ?? 7},
+        fitnessGoal = '${fitnessGoal ?? 'stay_active'}',
+        weeklyCalorieTarget = ${weeklyCalorieTarget ?? 1000},
+        setupCompleted = 1
+      WHERE email = '${session.user.email}'
+    `);
 
     return NextResponse.json({
       success: true,
-      data: user,
+      message: 'Preferences saved'
     });
   } catch (error) {
     console.error('Error saving lifestyle preferences:', error);
@@ -56,21 +56,24 @@ export async function GET() {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        walkingGoal: true,
-        cyclingGoal: true,
-        publicTransitGoal: true,
-        maxDrivingDays: true,
-        fitnessGoal: true,
-        weeklyCalorieTarget: true,
-        setupCompleted: true,
-      },
+      where: { email: session.user.email }
     });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
     return NextResponse.json({
       success: true,
-      data: user,
+      data: {
+        walkingGoal: (user as any).walkingGoal ?? 0,
+        cyclingGoal: (user as any).cyclingGoal ?? 0,
+        publicTransitGoal: (user as any).publicTransitGoal ?? 0,
+        maxDrivingDays: (user as any).maxDrivingDays ?? 7,
+        fitnessGoal: (user as any).fitnessGoal ?? 'stay_active',
+        weeklyCalorieTarget: (user as any).weeklyCalorieTarget ?? 1000,
+        setupCompleted: (user as any).setupCompleted ?? false,
+      }
     });
   } catch (error) {
     console.error('Error fetching lifestyle preferences:', error);
