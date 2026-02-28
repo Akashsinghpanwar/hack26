@@ -210,6 +210,36 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
+/* Route animation */
+@keyframes route-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.route-animated path {
+  stroke-dasharray: 10 10;
+  animation: route-dash 1s linear infinite;
+}
+
+/* Transport Mode Route Colors - Visual Legend */
+.route-car { stroke: #ef4444 !important; }    /* Red */
+.route-walk { stroke: #3b82f6 !important; }   /* Blue */
+.route-bike { stroke: #22c55e !important; }   /* Green */
+.route-bus { stroke: #f59e0b !important; }    /* Amber */
+.route-train { stroke: #eab308 !important; }  /* Yellow */
+
+/* Mode selection hover effects */
+.mode-button-car:hover { border-color: #ef4444 !important; }
+.mode-button-walk:hover { border-color: #3b82f6 !important; }
+.mode-button-bike:hover { border-color: #22c55e !important; }
+
+/* Route line styles */
+.leaflet-overlay-pane path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Custom focus styles */
 *:focus-visible {
   outline: 2px solid hsl(158 64% 40%);

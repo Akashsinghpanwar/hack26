@@ -184,12 +184,21 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
   if (plans.length === 0) return null;
 
   const modeColors: Record<TransportMode, string> = {
-    car: 'bg-rose-500',
+    car: 'bg-red-500',      // Red for car
     bus: 'bg-amber-500',
     train: 'bg-yellow-500',
-    bike: 'bg-emerald-500',
-    walk: 'bg-green-500',
-    ebike: 'bg-cyan-500',
+    bike: 'bg-green-500',   // Green for bike/cycle
+    walk: 'bg-blue-500',    // Blue for walk
+    ebike: 'bg-emerald-500',
+  };
+
+  const modeTextColors: Record<TransportMode, string> = {
+    car: 'text-red-600',
+    bus: 'text-amber-600',
+    train: 'text-yellow-600',
+    bike: 'text-green-600',
+    walk: 'text-blue-600',
+    ebike: 'text-emerald-600',
   };
 
   const modeLabels: Record<TransportMode, string> = {
@@ -217,6 +226,20 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
         </CardTitle>
       </CardHeader>
       <CardContent className="p-5 space-y-4">
+        {/* Color Legend */}
+        <div className="flex items-center justify-center gap-4 px-4 py-2 bg-white rounded-lg border border-violet-100 text-xs">
+          <span className="text-slate-500 font-medium">Route Colors:</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-4 h-3 rounded bg-red-500"></span> Car
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-4 h-3 rounded bg-blue-500"></span> Walk
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-4 h-3 rounded bg-green-500"></span> Bike
+          </span>
+        </div>
+
         <div className="space-y-3">
           {plans.slice(0, 3).map((plan) => (
             <div

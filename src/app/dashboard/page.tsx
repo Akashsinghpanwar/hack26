@@ -16,9 +16,77 @@ import { StreakTracker } from '@/components/gamification/StreakTracker';
 import { GoalProgress } from '@/components/gamification/GoalProgress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TransportMode, compareWithCar, ComparisonResult, calculateMetrics, calculateAllModes } from '@/lib/calculations';
+import { TransportMode, compareWithCar, ComparisonResult, calculateMetrics, calculateAllModes, TRANSPORT_DATA } from '@/lib/calculations';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+// Transport Mode Selection Modal
+function TransportModeModal({ 
+  isOpen, 
+  onSelect, 
+  distance,
+  fromLocation,
+  toLocation 
+}: { 
+  isOpen: boolean; 
+  onSelect: (mode: TransportMode) => void;
+  distance: number;
+  fromLocation: string;
+  toLocation: string;
+}) {
+  if (!isOpen) return null;
+
+  const modes: { mode: TransportMode; label: string; icon: string; color: string; desc: string }[] = [
+    { mode: 'car', label: 'Car', icon: '🚗', color: 'from-red-500 to-red-600', desc: 'Drove myself' },
+    { mode: 'bus', label: 'Bus', icon: '🚌', color: 'from-amber-500 to-amber-600', desc: 'Public bus' },
+    { mode: 'train', label: 'Train', icon: '🚆', color: 'from-yellow-500 to-yellow-600', desc: 'Train/Metro' },
+    { mode: 'bike', label: 'Bicycle', icon: '🚲', color: 'from-green-500 to-green-600', desc: 'Pedal power' },
+    { mode: 'walk', label: 'Walk', icon: '🚶', color: 'from-blue-500 to-blue-600', desc: 'On foot' },
+    { mode: 'ebike', label: 'E-Bike', icon: '⚡', color: 'from-cyan-500 to-cyan-600', desc: 'Electric bike' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6 text-white">
+          <h2 className="text-2xl font-bold flex items-center gap-3">
+            <span className="p-2 bg-white/20 rounded-xl">🎯</span>
+            How did you travel?
+          </h2>
+          <p className="mt-2 text-emerald-100">
+            {fromLocation} → {toLocation} ({distance.toFixed(1)} km)
+          </p>
+        </div>
+        
+        {/* Mode Grid */}
+        <div className="p-6">
+          <p className="text-sm text-slate-500 mb-4 text-center">
+            Select the transport mode you used for this journey
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {modes.map(({ mode, label, icon, color, desc }) => (
+              <button
+                key={mode}
+                onClick={() => onSelect(mode)}
+                className={`group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 bg-white hover:border-transparent hover:shadow-lg transition-all duration-200`}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-100 rounded-xl transition-opacity`} />
+                <span className="relative text-3xl group-hover:scale-110 transition-transform">{icon}</span>
+                <span className="relative font-semibold text-slate-700 group-hover:text-white">{label}</span>
+                <span className="relative text-xs text-slate-400 group-hover:text-white/80">{desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -28,8 +96,9 @@ export default function DashboardPage() {
   const [distance, setDistance] = useState<number>(0);
   const [fromLocation, setFromLocation] = useState<string>('');
   const [toLocation, setToLocation] = useState<string>('');
-  const [selectedMode, setSelectedMode] = useState<TransportMode>('bike');
+  const [selectedMode, setSelectedMode] = useState<TransportMode | null>(null);
   const [routeReady, setRouteReady] = useState(false);
+  const [showModeModal, setShowModeModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [destCoords, setDestCoords] = useState<{ lat: number; lon: number } | null>(null);
 
@@ -59,13 +128,14 @@ export default function DashboardPage() {
     const results = calculateAllModes(dist);
     setAllResults(results);
     
-    // Calculate for selected mode
-    const result = compareWithCar(dist, selectedMode);
-    setComparisonResult(result);
+    // Show modal to ask transport mode
+    setShowModeModal(true);
   };
 
   const handleModeSelect = (mode: TransportMode) => {
     setSelectedMode(mode);
+    setShowModeModal(false);
+    
     if (distance > 0) {
       const result = compareWithCar(distance, mode);
       setComparisonResult(result);
@@ -73,7 +143,7 @@ export default function DashboardPage() {
   };
 
   const handleSaveJourney = async () => {
-    if (!routeReady || distance <= 0) return;
+    if (!routeReady || distance <= 0 || !selectedMode) return;
     
     setSaving(true);
     try {
@@ -95,6 +165,7 @@ export default function DashboardPage() {
         setRouteReady(false);
         setComparisonResult(null);
         setDistance(0);
+        setSelectedMode(null);
       }
     } catch (error) {
       console.error('Error saving journey:', error);
@@ -117,6 +188,15 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <Navbar />
+      
+      {/* Transport Mode Selection Modal */}
+      <TransportModeModal
+        isOpen={showModeModal}
+        onSelect={handleModeSelect}
+        distance={distance}
+        fromLocation={fromLocation}
+        toLocation={toLocation}
+      />
       
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -180,18 +260,18 @@ export default function DashboardPage() {
                 results={allResults}
                 distance={distance}
                 onSelectMode={handleModeSelect}
-                currentMode={selectedMode}
+                currentMode={selectedMode || undefined}
               />
             )}
 
             {/* Transport Mode Selection */}
-            {routeReady && (
+            {routeReady && selectedMode && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <span className="text-2xl">🚀</span>
-                      How will you travel?
+                      Your Travel Mode
                     </span>
                     <span className="text-sm font-normal text-muted-foreground">
                       {fromLocation} → {toLocation}

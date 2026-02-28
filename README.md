@@ -33,6 +33,51 @@ Compare 6 transport modes side-by-side:
 - **One-click mode selection** - Easy switching between options
 - **Car warning** - Shows CO2 impact of driving
 
+### 🚗➡️🚶 Intelligent Hybrid Journey Splitting
+
+Our smart algorithm splits your journey into **Car + Walk/Bike** segments for the perfect balance of convenience and exercise.
+
+#### How It Works
+
+The algorithm considers:
+- **Total journey distance**
+- **Practical limits** for walking (~2.5km max) and cycling (~8km max)
+- **Time efficiency** - keeping active portions reasonable
+
+#### Split Logic
+
+| Total Distance | Walking Mode | Cycling Mode |
+|----------------|--------------|--------------|
+| < 5 km | 40% walk (max 2km) | 50% bike (max 4km) |
+| 5-10 km | 25% walk (max 2.5km) | 40% bike (max 6km) |
+| 10-20 km | 15% walk (max 2.5km) | 30% bike (max 8km) |
+| > 20 km | Fixed ~2km walk | Fixed ~8km bike |
+
+#### Examples
+
+```
+10km trip + Walk → 7.5km car (75%) + 2.5km walk (25%)
+10km trip + Bike → 6km car (60%) + 4km bike (40%)
+30km trip + Walk → 28km car (93%) + 2km walk (7%)
+30km trip + Bike → 22km car (73%) + 8km bike (27%)
+```
+
+#### Visual Route Display
+
+The map shows your hybrid route with distinct colors:
+- 🔴 **Red line** - Car segment (first portion)
+- 🔵 **Blue line** - Walking segment (if Walk selected)
+- 🟢 **Green line** - Cycling segment (if Bike selected)
+- **P marker** - Parking/transition point
+
+### 🅿️ Free Parking Finder
+
+Find free parking spots near your destination to enable hybrid journeys:
+- **OpenStreetMap Integration** - Real parking data from Overpass API
+- **2km Radius Search** - Finds parking within walking/biking distance
+- **Parking Types** - Surface lots, street parking, park & ride
+- **Distance & Walking Time** - Shows how far each parking spot is
+
 ### 🎯 Lifestyle Goals & Health Tracking
 Set personal goals during signup:
 - **Weekly walking/cycling/transit days**

@@ -152,8 +152,112 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectingStart, setSelectingStart] = useState(false);
   const [selectingEnd, setSelectingEnd] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<'car' | 'walk' | 'bike'>('walk');
+  const [hybridMode, setHybridMode] = useState(true); // Enable hybrid split by default
   
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Transport mode colors and config
+  const transportModes = {
+    car: { 
+      color: '#ef4444', // Red
+      label: 'Car',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+        </svg>
+      ),
+      bgColor: 'bg-red-500',
+      bgHover: 'hover:bg-red-600',
+      bgLight: 'bg-red-50',
+      borderColor: 'border-red-500',
+      textColor: 'text-red-600',
+    },
+    walk: { 
+      color: '#3b82f6', // Blue
+      label: 'Walk',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+      ),
+      bgColor: 'bg-blue-500',
+      bgHover: 'hover:bg-blue-600',
+      bgLight: 'bg-blue-50',
+      borderColor: 'border-blue-500',
+      textColor: 'text-blue-600',
+    },
+    bike: { 
+      color: '#22c55e', // Green
+      label: 'Bicycle',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <circle cx="5.5" cy="17.5" r="3.5" strokeWidth={2}/>
+          <circle cx="18.5" cy="17.5" r="3.5" strokeWidth={2}/>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 17.5l-3-6h6l3 6M9 11.5l3-6 3 6"/>
+        </svg>
+      ),
+      bgColor: 'bg-green-500',
+      bgHover: 'hover:bg-green-600',
+      bgLight: 'bg-green-50',
+      borderColor: 'border-green-500',
+      textColor: 'text-green-600',
+    },
+  };
+
+  // Smart algorithm to split route intelligently
+  const getHybridRouteSegments = () => {
+    if (routeCoords.length < 4 || !distance) {
+      return { firstHalf: routeCoords, secondHalf: [], carDistance: 0, activeDistance: 0 };
+    }
+
+    // Intelligent split based on mode and total distance
+    let activeDistanceKm: number;
+    
+    if (selectedMode === 'walk') {
+      // Walking limits: max 2.5km, or 20% of trip, whichever is smaller
+      // For short trips, walk more; for long trips, cap walking distance
+      if (distance <= 5) {
+        activeDistanceKm = Math.min(distance * 0.4, 2); // 40% but max 2km for short trips
+      } else if (distance <= 10) {
+        activeDistanceKm = Math.min(distance * 0.25, 2.5); // 25% but max 2.5km
+      } else if (distance <= 20) {
+        activeDistanceKm = Math.min(distance * 0.15, 2.5); // 15% but max 2.5km
+      } else {
+        activeDistanceKm = 2; // Just last 2km for very long trips
+      }
+    } else {
+      // Cycling limits: more generous, max 8km or 40% of trip
+      if (distance <= 8) {
+        activeDistanceKm = Math.min(distance * 0.5, 4); // 50% but max 4km for short trips
+      } else if (distance <= 15) {
+        activeDistanceKm = Math.min(distance * 0.4, 6); // 40% but max 6km
+      } else if (distance <= 30) {
+        activeDistanceKm = Math.min(distance * 0.3, 8); // 30% but max 8km
+      } else {
+        activeDistanceKm = 8; // Last 8km for very long trips
+      }
+    }
+
+    // Calculate the split point in the route coordinates
+    const activeRatio = activeDistanceKm / distance;
+    const carRatio = 1 - activeRatio;
+    
+    // Find the index to split at (car portion first)
+    const splitIndex = Math.floor(routeCoords.length * carRatio);
+    const adjustedSplitIndex = Math.max(1, Math.min(splitIndex, routeCoords.length - 2));
+
+    const carDistance = Math.round((distance * carRatio) * 10) / 10;
+    const activeDistance = Math.round((distance * activeRatio) * 10) / 10;
+
+    return {
+      firstHalf: routeCoords.slice(0, adjustedSplitIndex + 1), // Car segment
+      secondHalf: routeCoords.slice(adjustedSplitIndex),       // Walk/Bike segment
+      carDistance,
+      activeDistance,
+    };
+  };
 
   // Search for address using Nominatim
   const searchAddress = async (query: string, isStart: boolean) => {
@@ -468,6 +572,115 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
           </div>
         )}
 
+        {/* Transport Mode Selector */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-slate-700">Hybrid Journey Mode</Label>
+            <span className="text-xs bg-gradient-to-r from-red-500 to-blue-500 text-transparent bg-clip-text font-semibold">
+              Smart Car + {selectedMode === 'walk' ? 'Walk' : 'Bike'} Split
+            </span>
+          </div>
+          
+          {/* Journey Split Visual - Dynamic based on algorithm */}
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            {(() => {
+              const { carDistance, activeDistance } = getHybridRouteSegments();
+              const carPercent = distance ? Math.round((carDistance / distance) * 100) : 80;
+              const activePercent = 100 - carPercent;
+              return (
+                <>
+                  <div className="flex items-center gap-1 mb-3">
+                    <div 
+                      className="h-4 bg-gradient-to-r from-red-500 to-red-400 rounded-l-full transition-all duration-500" 
+                      style={{ width: `${carPercent}%` }}
+                    ></div>
+                    <div 
+                      className={`h-4 rounded-r-full transition-all duration-500 ${selectedMode === 'walk' ? 'bg-gradient-to-r from-blue-400 to-blue-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`}
+                      style={{ width: `${activePercent}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-red-600 font-medium">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                      Car: {carPercent}% {distance ? `(~${carDistance}km)` : ''}
+                    </span>
+                    <span className={`flex items-center gap-1.5 font-medium ${selectedMode === 'walk' ? 'text-blue-600' : 'text-green-600'}`}>
+                      <span className={`w-2.5 h-2.5 rounded-full ${selectedMode === 'walk' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                      {selectedMode === 'walk' ? 'Walk' : 'Bike'}: {activePercent}% {distance ? `(~${activeDistance}km)` : ''}
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Smart Split Info */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <strong>Smart Split:</strong> {selectedMode === 'walk' 
+                  ? 'Walking capped at ~2.5km (25-30 min walk) for practicality' 
+                  : 'Cycling capped at ~8km (20-25 min ride) for comfortable commute'}
+              </div>
+            </div>
+          </div>
+
+          {/* Second Half Mode Selection */}
+          <div>
+            <Label className="text-xs font-medium text-slate-500 mb-2 block">Choose Second Half Mode:</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {(['walk', 'bike'] as const).map((mode) => {
+                const config = transportModes[mode];
+                const isSelected = selectedMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setSelectedMode(mode)}
+                    className={`relative flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      isSelected 
+                        ? `${config.borderColor} ${config.bgLight} shadow-lg` 
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className={`p-2.5 rounded-full ${isSelected ? config.bgColor : 'bg-slate-100'} ${isSelected ? 'text-white' : 'text-slate-500'}`}>
+                      {config.icon}
+                    </div>
+                    <div className="text-left">
+                      <span className={`font-semibold block ${isSelected ? config.textColor : 'text-slate-600'}`}>
+                        {config.label}
+                      </span>
+                      <span className="text-xs text-slate-400">Second half</span>
+                    </div>
+                    {isSelected && (
+                      <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${config.bgColor} flex items-center justify-center`}>
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Route color legend */}
+          <div className="flex items-center justify-center gap-6 pt-1 text-xs text-slate-500 border-t border-slate-100 mt-2 pt-3">
+            <span className="flex items-center gap-1.5">
+              <span className="w-5 h-1.5 rounded bg-red-500"></span> Car (First Half)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-5 h-1.5 rounded bg-blue-500"></span> Walk
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-5 h-1.5 rounded bg-green-500"></span> Bicycle
+            </span>
+          </div>
+        </div>
+
         {/* Map Container */}
         <div className="relative h-[420px] rounded-2xl overflow-hidden shadow-lg ring-1 ring-slate-200">
           {/* Map overlay gradient */}
@@ -514,22 +727,89 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
             
             {routeCoords.length > 0 && (
               <>
-                {/* Route shadow */}
-                <Polyline
-                  positions={routeCoords}
-                  color="#000"
-                  weight={8}
-                  opacity={0.15}
-                />
-                {/* Main route */}
-                <Polyline
-                  positions={routeCoords}
-                  color="#10b981"
-                  weight={5}
-                  opacity={1}
-                  lineCap="round"
-                  lineJoin="round"
-                />
+                {/* Get split segments */}
+                {(() => {
+                  const { firstHalf, secondHalf } = getHybridRouteSegments();
+                  const secondColor = transportModes[selectedMode].color;
+                  return (
+                    <>
+                      {/* === FIRST HALF: CAR (RED) === */}
+                      {/* Shadow for car segment */}
+                      <Polyline
+                        positions={firstHalf}
+                        color="#000"
+                        weight={12}
+                        opacity={0.1}
+                      />
+                      {/* Glow for car segment */}
+                      <Polyline
+                        positions={firstHalf}
+                        color="#ef4444"
+                        weight={9}
+                        opacity={0.25}
+                      />
+                      {/* Main car route - RED */}
+                      <Polyline
+                        positions={firstHalf}
+                        color="#ef4444"
+                        weight={6}
+                        opacity={1}
+                        lineCap="round"
+                        lineJoin="round"
+                      />
+
+                      {/* === SECOND HALF: WALK/BIKE (BLUE/GREEN) === */}
+                      {secondHalf.length > 1 && (
+                        <>
+                          {/* Shadow for second segment */}
+                          <Polyline
+                            positions={secondHalf}
+                            color="#000"
+                            weight={12}
+                            opacity={0.1}
+                          />
+                          {/* Glow for second segment */}
+                          <Polyline
+                            positions={secondHalf}
+                            color={secondColor}
+                            weight={9}
+                            opacity={0.25}
+                          />
+                          {/* Main walk/bike route */}
+                          <Polyline
+                            positions={secondHalf}
+                            color={secondColor}
+                            weight={6}
+                            opacity={1}
+                            lineCap="round"
+                            lineJoin="round"
+                          />
+                        </>
+                      )}
+
+                      {/* Transition point marker */}
+                      {firstHalf.length > 0 && secondHalf.length > 0 && (
+                        <Marker 
+                          position={firstHalf[firstHalf.length - 1]} 
+                          icon={L.divIcon({
+                            html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28">
+                              <circle cx="16" cy="16" r="14" fill="white" stroke="#374151" stroke-width="2"/>
+                              <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="bold" fill="#374151">P</text>
+                            </svg>`,
+                            className: 'custom-marker',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14],
+                          })}
+                        >
+                          <Popup>
+                            <div className="font-semibold text-slate-700">Parking Point</div>
+                            <div className="text-sm text-slate-500">Switch from Car to {selectedMode === 'walk' ? 'Walking' : 'Bicycle'}</div>
+                          </Popup>
+                        </Marker>
+                      )}
+                    </>
+                  );
+                })()}
               </>
             )}
           </MapContainer>
@@ -540,7 +820,7 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
           <Button
             onClick={calculateRoute}
             disabled={!startLocation || !endLocation || isLoading}
-            className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 h-12 px-8 text-base"
+            className="w-full sm:w-auto bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 hover:from-red-600 hover:via-purple-600 hover:to-blue-600 text-white shadow-lg h-12 px-8 text-base"
             size="lg"
           >
             {isLoading ? (
@@ -554,31 +834,71 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
             ) : (
               <>
                 <Icons.route />
-                <span className="ml-2">Calculate Route</span>
+                <span className="ml-2">Calculate Hybrid Route</span>
               </>
             )}
           </Button>
 
           {distance !== null && (
-            <div className="flex gap-6 items-center bg-slate-50 rounded-xl px-6 py-3">
-              <div className="text-center">
-                <div className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
-                  {distance.toFixed(1)}
-                </div>
-                <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Kilometers</div>
-              </div>
-              {duration !== null && (
-                <>
-                  <div className="w-px h-10 bg-slate-200"></div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-slate-700 flex items-center gap-1">
-                      <Icons.clock />
-                      {Math.round(duration)}
+            <div className="flex flex-col gap-3 bg-slate-50 rounded-xl px-5 py-4 w-full">
+              {(() => {
+                const { carDistance, activeDistance } = getHybridRouteSegments();
+                return (
+                  <>
+                    {/* Split Journey Header */}
+                    <div className="flex items-center justify-center gap-2 text-sm font-medium text-slate-600">
+                      <span className="px-2 py-0.5 rounded bg-red-100 text-red-700">Car</span>
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span className={`px-2 py-0.5 rounded ${selectedMode === 'walk' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                        {selectedMode === 'walk' ? 'Walk' : 'Bicycle'}
+                      </span>
                     </div>
-                    <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Minutes</div>
-                  </div>
-                </>
-              )}
+                    
+                    {/* Distance Breakdown with Smart Split */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Car Distance */}
+                      <div className="bg-white rounded-lg p-3 text-center border border-red-100">
+                        <div className="text-2xl font-bold text-red-600">{carDistance}</div>
+                        <div className="text-xs text-slate-500">km by Car</div>
+                      </div>
+                      
+                      {/* Walk/Bike Distance */}
+                      <div className={`bg-white rounded-lg p-3 text-center border ${selectedMode === 'walk' ? 'border-blue-100' : 'border-green-100'}`}>
+                        <div className={`text-2xl font-bold ${selectedMode === 'walk' ? 'text-blue-600' : 'text-green-600'}`}>
+                          {activeDistance}
+                        </div>
+                        <div className="text-xs text-slate-500">km by {selectedMode === 'walk' ? 'Walk' : 'Bike'}</div>
+                      </div>
+                      
+                      {/* Total */}
+                      <div className="bg-white rounded-lg p-3 text-center border border-slate-200">
+                        <div className="text-2xl font-bold text-slate-700">{distance.toFixed(1)}</div>
+                        <div className="text-xs text-slate-500">km Total</div>
+                      </div>
+                    </div>
+
+                    {/* Time & Calorie Estimates */}
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                      <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+                        <Icons.clock />
+                        <span>
+                          ~{Math.round(carDistance / 40 * 60 + activeDistance / (selectedMode === 'walk' ? 5 : 15) * 60)} min total
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm text-emerald-600">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                        </svg>
+                        <span>
+                          ~{Math.round(activeDistance * (selectedMode === 'walk' ? 50 : 30))} cal burned
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
