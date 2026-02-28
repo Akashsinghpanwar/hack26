@@ -14,6 +14,20 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
+    // Get user with lifestyle goals
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        walkingGoal: true,
+        cyclingGoal: true,
+        publicTransitGoal: true,
+        maxDrivingDays: true,
+        fitnessGoal: true,
+        weeklyCalorieTarget: true,
+        setupCompleted: true,
+      }
+    });
+
     // Get aggregate stats
     const stats = await prisma.journey.aggregate({
       where: { userId },
@@ -50,6 +64,10 @@ export async function GET(request: NextRequest) {
       include: { achievement: true }
     });
 
+    // Get weekly progress (journeys from this week)
+    const weekStart = getWeekStart();
+    const weeklyProgress = await calculateWeeklyProgress(userId, weekStart);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -63,7 +81,19 @@ export async function GET(request: NextRequest) {
         achievements: achievements.map(ua => ({
           ...ua.achievement,
           unlockedAt: ua.unlockedAt
-        }))
+        })),
+        // Lifestyle goals
+        lifestyleGoals: user ? {
+          walkingGoal: user.walkingGoal,
+          cyclingGoal: user.cyclingGoal,
+          publicTransitGoal: user.publicTransitGoal,
+          maxDrivingDays: user.maxDrivingDays,
+          fitnessGoal: user.fitnessGoal || 'stay_active',
+          weeklyCalorieTarget: user.weeklyCalorieTarget,
+          setupCompleted: user.setupCompleted,
+        } : null,
+        // Weekly progress
+        weeklyProgress,
       }
     });
   } catch (error) {
@@ -73,6 +103,68 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Get start of current week (Monday)
+function getWeekStart(): Date {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  const weekStart = new Date(now.setDate(diff));
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
+}
+
+// Calculate weekly progress for goals
+async function calculateWeeklyProgress(userId: string, weekStart: Date) {
+  const journeys = await prisma.journey.findMany({
+    where: {
+      userId,
+      createdAt: { gte: weekStart }
+    },
+    select: {
+      transportMode: true,
+      caloriesBurned: true,
+      createdAt: true
+    }
+  });
+
+  // Count unique days for each transport mode
+  const walkingDays = new Set<string>();
+  const cyclingDays = new Set<string>();
+  const transitDays = new Set<string>();
+  const drivingDays = new Set<string>();
+  let totalCalories = 0;
+
+  journeys.forEach(journey => {
+    const dateKey = journey.createdAt.toISOString().split('T')[0];
+    totalCalories += journey.caloriesBurned;
+
+    switch (journey.transportMode) {
+      case 'walk':
+        walkingDays.add(dateKey);
+        break;
+      case 'bike':
+      case 'ebike':
+        cyclingDays.add(dateKey);
+        break;
+      case 'bus':
+      case 'train':
+        transitDays.add(dateKey);
+        break;
+      case 'car':
+        drivingDays.add(dateKey);
+        break;
+    }
+  });
+
+  return {
+    walkingDays: walkingDays.size,
+    cyclingDays: cyclingDays.size,
+    transitDays: transitDays.size,
+    drivingDays: drivingDays.size,
+    caloriesBurned: Math.round(totalCalories),
+  };
 }
 
 // Calculate current streak

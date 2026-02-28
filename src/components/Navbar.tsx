@@ -16,6 +16,7 @@ export function Navbar() {
     { href: '/history', label: 'History', icon: '📜' },
     { href: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
     { href: '/achievements', label: 'Achievements', icon: '🎖️' },
+    { href: '/lifestyle-setup', label: 'Goals', icon: '🎯' },
   ];
 
   return (

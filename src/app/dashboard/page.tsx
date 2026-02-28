@@ -12,6 +12,7 @@ import { ImpactSummary } from '@/components/comparison/ImpactSummary';
 import { EcoRecommendation } from '@/components/comparison/EcoRecommendation';
 import { SustainabilityScore } from '@/components/gamification/SustainabilityScore';
 import { StreakTracker } from '@/components/gamification/StreakTracker';
+import { GoalProgress } from '@/components/gamification/GoalProgress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TransportMode, compareWithCar, ComparisonResult, calculateMetrics, calculateAllModes } from '@/lib/calculations';
@@ -215,6 +216,16 @@ export default function DashboardPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            <GoalProgress 
+              goals={userStats?.lifestyleGoals || null}
+              progress={userStats?.weeklyProgress || {
+                walkingDays: 0,
+                cyclingDays: 0,
+                transitDays: 0,
+                drivingDays: 0,
+                caloriesBurned: 0,
+              }}
+            />
             <SustainabilityScore score={userStats?.sustainabilityScore || 0} />
             <StreakTracker 
               currentStreak={userStats?.currentStreak || 0}

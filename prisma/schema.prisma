@@ -12,6 +12,22 @@ model User {
   name          String?
   password      String?
   image         String?
+  
+  // Lifestyle Goals
+  walkingGoal     Int       @default(0)   // days per week goal
+  cyclingGoal     Int       @default(0)   // days per week goal
+  runningGoal     Int       @default(0)   // days per week goal (fast walk/jog)
+  publicTransitGoal Int     @default(0)   // days using bus/train
+  maxDrivingDays  Int       @default(7)   // max car days allowed per week
+  
+  // Health Profile
+  fitnessGoal     String?   // "lose_weight", "stay_active", "build_stamina", "reduce_carbon"
+  weeklyCalorieTarget Int   @default(2000) // weekly calorie burn goal
+  
+  // Preferences
+  preferredModes  String?   // comma-separated: "bike,walk,train"
+  setupCompleted  Boolean   @default(false)
+  
   journeys      Journey[]
   achievements  UserAchievement[]
   createdAt     DateTime  @default(now())
