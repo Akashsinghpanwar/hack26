@@ -79,12 +79,12 @@ export interface ComparisonResult {
 export function calculateMetrics(distance: number, mode: TransportMode): JourneyMetrics {
   const data = TRANSPORT_DATA[mode];
   const carData = TRANSPORT_DATA.car;
-  
+
   const travelTime = (distance / data.speed) * 60; // minutes
   const co2Emissions = distance * data.co2PerKm;
   const caloriesBurned = distance * data.calPerKm;
   const co2Saved = (carData.co2PerKm * distance) - co2Emissions;
-  
+
   return {
     travelTime: Math.round(travelTime),
     co2Emissions: Math.round(co2Emissions * 100) / 100,
@@ -97,7 +97,7 @@ export function calculateMetrics(distance: number, mode: TransportMode): Journey
 export function compareWithCar(distance: number, mode: TransportMode): ComparisonResult {
   const modeMetrics = calculateMetrics(distance, mode);
   const carMetrics = calculateMetrics(distance, 'car');
-  
+
   return {
     mode,
     metrics: modeMetrics,
@@ -111,6 +111,47 @@ export function compareWithCar(distance: number, mode: TransportMode): Compariso
 export function calculateAllModes(distance: number): ComparisonResult[] {
   const modes: TransportMode[] = ['car', 'bus', 'train', 'bike', 'walk', 'ebike'];
   return modes.map(mode => compareWithCar(distance, mode));
+}
+
+// Calculate metrics using a custom car CO2 value (from vehicle reg lookup)
+export function calculateMetricsWithCustomCar(distance: number, mode: TransportMode, customCarCo2PerKm: number): JourneyMetrics {
+  const data = TRANSPORT_DATA[mode];
+
+  const travelTime = (distance / data.speed) * 60;
+  // If this is the car mode, use the custom CO2; otherwise use normal mode CO2
+  const co2Emissions = mode === 'car'
+    ? distance * customCarCo2PerKm
+    : distance * data.co2PerKm;
+  const caloriesBurned = distance * data.calPerKm;
+  // CO2 saved is always vs the user's actual car
+  const co2Saved = (customCarCo2PerKm * distance) - co2Emissions;
+
+  return {
+    travelTime: Math.round(travelTime),
+    co2Emissions: Math.round(co2Emissions * 100) / 100,
+    caloriesBurned: Math.round(caloriesBurned),
+    co2Saved: Math.round(co2Saved * 100) / 100
+  };
+}
+
+// Compare against user's actual car CO2 figure
+export function compareWithCustomCar(distance: number, mode: TransportMode, customCarCo2PerKm: number): ComparisonResult {
+  const modeMetrics = calculateMetricsWithCustomCar(distance, mode, customCarCo2PerKm);
+  const carMetrics = calculateMetricsWithCustomCar(distance, 'car', customCarCo2PerKm);
+
+  return {
+    mode,
+    metrics: modeMetrics,
+    timeDifference: modeMetrics.travelTime - carMetrics.travelTime,
+    co2Difference: modeMetrics.co2Emissions - carMetrics.co2Emissions,
+    calorieDifference: modeMetrics.caloriesBurned - carMetrics.caloriesBurned
+  };
+}
+
+// Calculate all modes using user's custom car CO2 (from reg lookup)
+export function calculateAllModesWithCustomCar(distance: number, customCarCo2PerKm: number): ComparisonResult[] {
+  const modes: TransportMode[] = ['car', 'bus', 'train', 'bike', 'walk', 'ebike'];
+  return modes.map(mode => compareWithCustomCar(distance, mode, customCarCo2PerKm));
 }
 
 // Convert CO2 saved to equivalent trees planted (1 tree absorbs ~21kg CO2/year)
@@ -137,7 +178,7 @@ export function calculateSustainabilityScore(
   const caloriePoints = totalCalories * 0.1;
   const tripPoints = sustainableTrips * 5;
   const streakBonus = currentStreak * 2;
-  
+
   return Math.round(co2Points + caloriePoints + tripPoints + streakBonus);
 }
 
@@ -152,7 +193,7 @@ export function getLevel(score: number): { name: string; minScore: number; maxSc
     { name: 'Carbon Hero', minScore: 2000, maxScore: 5000 },
     { name: 'Climate Champion', minScore: 5000, maxScore: Infinity }
   ];
-  
+
   return levels.find(l => score >= l.minScore && score < l.maxScore) || levels[0];
 }
 
@@ -174,12 +215,12 @@ export function getRecommendation(
     const trainSavings = distance * (TRANSPORT_DATA.car.co2PerKm - TRANSPORT_DATA.train.co2PerKm) * frequency * 4;
     return `Taking the train would save ${trainSavings.toFixed(1)} kg CO2 per month!`;
   }
-  
+
   const calories = distance * TRANSPORT_DATA[currentMode].calPerKm * frequency * 4;
   if (calories > 0) {
     return `Great choice! You're burning ${calories} calories per month with this sustainable transport!`;
   }
-  
+
   return `You're making a sustainable choice! Keep it up!`;
 }
 

@@ -59,6 +59,12 @@ export async function GET(request: NextRequest) {
     const weekStart = getWeekStart();
     const weeklyProgress = await calculateWeeklyProgress(userId, weekStart);
 
+    // Calculate daily CO2 comparison (today vs yesterday)
+    const dailyCo2Comparison = await calculateDailyCo2Comparison(userId);
+
+    // Get mode distribution for all journeys
+    const modeStats = await calculateModeStats(userId);
+
     // Extract lifestyle goals from user if available
     const lifestyleGoals = user ? {
       walkingGoal: (user as any).walkingGoal ?? 0,
@@ -86,6 +92,8 @@ export async function GET(request: NextRequest) {
         })),
         lifestyleGoals,
         weeklyProgress,
+        dailyCo2Comparison,
+        modeStats,
       }
     });
   } catch (error) {
@@ -189,4 +197,71 @@ async function calculateStreak(userId: string): Promise<number> {
   }
 
   return streak;
+}
+
+// Calculate daily CO2 comparison (today vs yesterday)
+async function calculateDailyCo2Comparison(userId: string) {
+  const now = new Date();
+  
+  // Today's start and end
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+  
+  // Yesterday's start and end
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const yesterdayEnd = new Date(todayStart);
+  yesterdayEnd.setMilliseconds(-1);
+
+  // Get today's CO2 saved
+  const todayStats = await prisma.journey.aggregate({
+    where: {
+      userId,
+      createdAt: { gte: todayStart, lte: todayEnd }
+    },
+    _sum: { co2Saved: true }
+  });
+
+  // Get yesterday's CO2 saved
+  const yesterdayStats = await prisma.journey.aggregate({
+    where: {
+      userId,
+      createdAt: { gte: yesterdayStart, lte: yesterdayEnd }
+    },
+    _sum: { co2Saved: true }
+  });
+
+  const todayCo2 = todayStats._sum.co2Saved || 0;
+  const yesterdayCo2 = yesterdayStats._sum.co2Saved || 0;
+  const difference = todayCo2 - yesterdayCo2;
+
+  return {
+    todayCo2Saved: Math.round(todayCo2 * 100) / 100,
+    yesterdayCo2Saved: Math.round(yesterdayCo2 * 100) / 100,
+    difference: Math.round(difference * 100) / 100,
+    message: difference > 0 
+      ? `You saved ${Math.abs(difference).toFixed(1)}kg more CO₂ today than yesterday!`
+      : difference < 0
+      ? `You saved ${Math.abs(difference).toFixed(1)}kg less CO₂ than yesterday`
+      : 'Same CO₂ savings as yesterday'
+  };
+}
+
+// Calculate mode distribution stats
+async function calculateModeStats(userId: string) {
+  const journeys = await prisma.journey.groupBy({
+    by: ['transportMode'],
+    where: { userId },
+    _count: true,
+    _sum: { distance: true }
+  });
+
+  const result: Record<string, number> = {};
+  journeys.forEach(j => {
+    result[j.transportMode] = j._count;
+  });
+
+  return result;
 }

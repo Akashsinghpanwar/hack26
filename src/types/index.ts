@@ -90,3 +90,63 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+// Transit types for bus/train schedules
+export interface TransitOption {
+  id: string;
+  serviceName: string;        // "First Bus 19", "ScotRail"
+  serviceType: 'BUS' | 'RAIL' | 'SUBWAY' | 'TRAM' | 'FERRY';
+  vehicleGoogleType?: string; // Original Google vehicle type (BUS, TROLLEYBUS, etc.)
+  isElectric?: boolean;       // Whether the vehicle is electric
+  departureTime: string;      // "14:35"
+  arrivalTime: string;        // "14:52"
+  departureTimestamp: number; // Unix timestamp
+  arrivalTimestamp: number;   // Unix timestamp
+  duration: number;           // minutes
+  distance: number;           // meters
+  stops: number;              // number of transit stops
+  walkingDuration: number;    // total walking time in minutes
+  fare?: string;              // fare info if available
+  polyline: string;           // encoded polyline for full route
+  steps: TransitStep[];       // detailed steps
+  co2Emissions: number;       // calculated CO2 for this transit option
+}
+
+export interface TransitStep {
+  mode: 'WALKING' | 'TRANSIT';
+  instruction: string;
+  htmlInstruction?: string;
+  duration: number;           // seconds
+  distance: number;           // meters
+  polyline: string;           // encoded polyline for this step
+  startLocation: { lat: number; lng: number };
+  endLocation: { lat: number; lng: number };
+  transitDetails?: {
+    lineName: string;         // "19", "Aberdeen - Dundee"
+    lineShortName: string;    // "19"
+    lineColor?: string;       // hex color
+    vehicleType: string;      // "BUS", "HEAVY_RAIL", "TROLLEYBUS"
+    vehicleIcon?: string;     // icon URL
+    agencyName: string;       // "First Bus", "ScotRail"
+    departureStop: string;    // "Union Street"
+    arrivalStop: string;      // "Market Street"
+    departureTime: string;    // "14:35"
+    arrivalTime: string;      // "14:52"
+    numStops: number;
+    headsign?: string;        // "City Centre"
+    isElectric?: boolean;     // Whether this transit segment uses electric vehicle
+  };
+}
+
+export interface TransitRouteRequest {
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+  mode: 'bus' | 'train' | 'all';
+  departureTime?: number;     // Unix timestamp, defaults to now
+}
+
+export interface TransitRouteResponse {
+  success: boolean;
+  options: TransitOption[];
+  error?: string;
+}

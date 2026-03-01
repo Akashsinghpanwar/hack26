@@ -39,42 +39,40 @@ export function ComparisonChart({ results, metric }: ComparisonChartProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{getMetricTitle()}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
+    <Card className="border-0 shadow-none bg-transparent">
+      <CardContent className="p-0">
+        <div className="h-[200px] sm:h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
               <XAxis 
                 dataKey="name" 
-                tick={{ fill: 'hsl(var(--foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--muted))' }}
+                tick={{ fill: 'hsl(var(--foreground))', fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
               />
               <YAxis 
-                tick={{ fill: 'hsl(var(--foreground))' }}
-                tickLine={{ stroke: 'hsl(var(--muted))' }}
-                label={{ 
-                  value: getMetricLabel(), 
-                  angle: -90, 
-                  position: 'insideLeft',
-                  fill: 'hsl(var(--foreground))'
-                }}
+                tick={{ fill: 'hsl(var(--foreground))', fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                width={35}
               />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
+                  fontSize: '12px'
                 }}
-                formatter={(value: number) => [
-                  metric === 'co2' ? `${value} kg` : 
-                  metric === 'time' ? `${value} min` : 
-                  `${value} kcal`,
-                  getMetricLabel()
-                ]}
+                formatter={(value) => {
+                  const numValue = Number(value) || 0;
+                  return [
+                    metric === 'co2' ? `${numValue} kg` : 
+                    metric === 'time' ? `${numValue} min` : 
+                    `${numValue} kcal`,
+                    getMetricLabel()
+                  ];
+                }}
               />
               <Bar dataKey={metric} radius={[4, 4, 0, 0]}>
                 {chartData.map((entry, index) => (

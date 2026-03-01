@@ -18,71 +18,71 @@ export function ImpactSummary({ result, distance }: ImpactSummaryProps) {
   const isSustainable = mode !== 'car';
 
   return (
-    <Card className={isSustainable ? 'border-green-200 bg-green-50/50' : 'border-orange-200 bg-orange-50/50'}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">{transportData.icon}</span>
-          Your Choice: {transportData.label}
-          {isSustainable && <span className="ml-2 text-sm bg-green-500 text-white px-2 py-0.5 rounded-full">Sustainable</span>}
+    <Card className={`border-0 shadow-sm ${isSustainable ? 'bg-gradient-to-br from-green-50 to-emerald-50' : 'bg-gradient-to-br from-orange-50 to-amber-50'}`}>
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <span className="text-xl sm:text-2xl">{transportData.icon}</span>
+          <span className="truncate">{transportData.label}</span>
+          {isSustainable && <span className="ml-auto text-[10px] sm:text-xs bg-green-500 text-white px-2 py-0.5 rounded-full whitespace-nowrap">Sustainable</span>}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-3xl mb-1">🌍</div>
-            <div className="text-2xl font-bold text-green-600">
-              {metrics.co2Saved > 0 ? `${metrics.co2Saved} kg` : `${metrics.co2Emissions} kg`}
+      <CardContent className="space-y-3 px-3 sm:px-6 pb-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="text-center p-2 sm:p-4 bg-white rounded-lg shadow-sm">
+            <div className="text-xl sm:text-3xl mb-0.5 sm:mb-1">🌍</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
+              {metrics.co2Saved > 0 ? metrics.co2Saved.toFixed(1) : metrics.co2Emissions.toFixed(1)}
             </div>
-            <div className="text-sm text-muted-foreground">
-              {metrics.co2Saved > 0 ? 'CO2 Saved vs Driving' : 'CO2 Emitted'}
+            <div className="text-[10px] sm:text-sm text-muted-foreground">
+              kg {metrics.co2Saved > 0 ? 'saved' : 'CO₂'}
             </div>
           </div>
           
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-3xl mb-1">🌳</div>
-            <div className="text-2xl font-bold text-green-600">
+          <div className="text-center p-2 sm:p-4 bg-white rounded-lg shadow-sm">
+            <div className="text-xl sm:text-3xl mb-0.5 sm:mb-1">🌳</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
               {trees > 0 ? trees : 0}
             </div>
-            <div className="text-sm text-muted-foreground">
-              Equivalent Trees Planted
+            <div className="text-[10px] sm:text-sm text-muted-foreground">
+              trees
             </div>
           </div>
           
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-3xl mb-1">🔥</div>
-            <div className="text-2xl font-bold text-orange-500">
+          <div className="text-center p-2 sm:p-4 bg-white rounded-lg shadow-sm">
+            <div className="text-xl sm:text-3xl mb-0.5 sm:mb-1">🔥</div>
+            <div className="text-lg sm:text-2xl font-bold text-orange-500">
               {metrics.caloriesBurned}
             </div>
-            <div className="text-sm text-muted-foreground">
-              Calories Burned ({food})
+            <div className="text-[10px] sm:text-sm text-muted-foreground">
+              cal
             </div>
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-lg shadow-sm border-l-4 border-blue-500">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">💡</span>
-            <div>
-              <h4 className="font-semibold text-blue-800">Smart Recommendation</h4>
-              <p className="text-sm text-muted-foreground mt-1">{recommendation}</p>
+        <div className="p-3 sm:p-4 bg-white rounded-lg shadow-sm border-l-4 border-blue-500">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <span className="text-lg sm:text-2xl">💡</span>
+            <div className="min-w-0">
+              <h4 className="font-semibold text-blue-800 text-sm sm:text-base">Tip</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-2">{recommendation}</p>
             </div>
           </div>
         </div>
 
         {isSustainable && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {metrics.co2Saved > 0 && (
-              <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                <span>✓</span> Low Carbon
+              <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-sm">
+                ✓ Low Carbon
               </span>
             )}
             {metrics.caloriesBurned > 0 && (
-              <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm">
-                <span>✓</span> Active Travel
+              <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-sm">
+                ✓ Active
               </span>
             )}
-            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-              <span>✓</span> Eco Friendly
+            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-sm">
+              ✓ Eco
             </span>
           </div>
         )}

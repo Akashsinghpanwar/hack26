@@ -13,6 +13,11 @@ model User {
   password      String?
   image         String?
   
+  // Car Details
+  carPlateNumber  String?   // User's car registration plate
+  carType         String?   // "petrol", "diesel", "hybrid", "electric"
+  carEmissionFactor Float   @default(171) // g CO2/km - default diesel car
+  
   // Lifestyle Goals
   walkingGoal     Int       @default(0)   // days per week goal
   cyclingGoal     Int       @default(0)   // days per week goal
@@ -27,6 +32,17 @@ model User {
   // Preferences
   preferredModes  String?   // comma-separated: "bike,walk,train"
   setupCompleted  Boolean   @default(false)
+  
+  // Coin Reward System
+  coins           Int       @default(0)     // total coins collected
+  lastLoginDate   DateTime?                 // track daily login for rewards
+  treesPlanted    Int       @default(0)     // trees planted when 100 coins collected
+  totalCoinsEarned Int      @default(0)     // lifetime coins earned
+  
+  // Daily Streak Reward System
+  streak          Int       @default(0)     // current login streak days
+  totalLeaves     Int       @default(0)     // total leaves collected from streaks
+  lastStreakDate  DateTime?                 // last date streak was updated
   
   journeys      Journey[]
   achievements  UserAchievement[]

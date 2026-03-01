@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json();
+    const { email, password, name, carPlateNumber, carType, carEmissionFactor } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -28,12 +28,15 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user with car details
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        name: name || email.split('@')[0]
+        name: name || email.split('@')[0],
+        carPlateNumber: carPlateNumber || null,
+        carType: carType || null,
+        carEmissionFactor: carEmissionFactor || 171,
       }
     });
 
@@ -42,7 +45,9 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        carPlateNumber: user.carPlateNumber,
+        carType: user.carType,
       }
     });
   } catch (error) {

@@ -9,11 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Car emission factors (g CO2/km)
+const CAR_EMISSION_FACTORS: Record<string, number> = {
+  petrol: 171,
+  diesel: 171,
+  hybrid: 92,
+  electric: 0,
+};
+
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [carPlateNumber, setCarPlateNumber] = useState('');
+  const [carType, setCarType] = useState<string>('petrol');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -35,10 +45,19 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      const carEmissionFactor = CAR_EMISSION_FACTORS[carType] || 171;
+      
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ 
+          name, 
+          email, 
+          password,
+          carPlateNumber: carPlateNumber || null,
+          carType: carType || null,
+          carEmissionFactor,
+        }),
       });
 
       const data = await res.json();
@@ -135,6 +154,63 @@ export default function RegisterPage() {
                 required
                 disabled={isLoading}
               />
+            </div>
+
+            {/* Car Details Section */}
+            <div className="pt-4 border-t border-slate-200">
+              <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                🚗 Your Car Details
+                <span className="text-xs font-normal text-slate-500">(for emission tracking)</span>
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="carPlateNumber">Car Registration Number</Label>
+                  <Input
+                    id="carPlateNumber"
+                    type="text"
+                    placeholder="e.g., AB12 CDE"
+                    value={carPlateNumber}
+                    onChange={(e) => setCarPlateNumber(e.target.value.toUpperCase())}
+                    disabled={isLoading}
+                    className="uppercase"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="carType">Car Type</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['petrol', 'diesel', 'hybrid', 'electric'] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setCarType(type)}
+                        disabled={isLoading}
+                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          carType === type
+                            ? type === 'electric' 
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                              : type === 'hybrid'
+                              ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                              : 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="text-lg mb-1">
+                          {type === 'petrol' && '⛽'}
+                          {type === 'diesel' && '🛢️'}
+                          {type === 'hybrid' && '🔋'}
+                          {type === 'electric' && '⚡'}
+                        </div>
+                        <div className="capitalize">{type}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">
+                          {CAR_EMISSION_FACTORS[type]}g CO₂/km
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

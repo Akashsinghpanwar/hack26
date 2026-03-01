@@ -92,6 +92,57 @@ export function EcoRecommendation({ results, distance, onSelectMode, currentMode
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* MOST SUSTAINABLE OPTION TODAY - Hero Banner */}
+        {mostEcoFriendly && (
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="animate-pulse text-2xl">🌟</span>
+                <span className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  Most Sustainable Option Today
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-6 mt-4">
+                <div className="text-6xl bg-white/20 rounded-2xl p-4 backdrop-blur-sm">
+                  {TRANSPORT_DATA[mostEcoFriendly.mode].icon}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-3xl font-black mb-1">
+                    {TRANSPORT_DATA[mostEcoFriendly.mode].label}
+                  </h3>
+                  <p className="text-white/80 text-sm mb-4">
+                    The greenest choice for your {distance.toFixed(1)}km journey!
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2">
+                      <p className="text-xs text-white/70 uppercase">CO₂ Saved</p>
+                      <p className="text-2xl font-black">{mostEcoFriendly.metrics.co2Saved.toFixed(2)}kg</p>
+                    </div>
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2">
+                      <p className="text-xs text-white/70 uppercase">Calories</p>
+                      <p className="text-2xl font-black">{mostEcoFriendly.metrics.caloriesBurned.toFixed(0)}</p>
+                    </div>
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2">
+                      <p className="text-xs text-white/70 uppercase">Time</p>
+                      <p className="text-2xl font-black">{mostEcoFriendly.metrics.travelTime}min</p>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  className="bg-white text-emerald-700 hover:bg-white/90 hover:scale-105 transition-all font-bold px-6 py-6 rounded-xl shadow-lg"
+                  onClick={() => onSelectMode(mostEcoFriendly.mode)}
+                >
+                  Choose This Option →
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Top Recommendation */}
         {topRecommendation && (
           <div className="bg-white rounded-xl p-4 shadow-sm border border-green-200">

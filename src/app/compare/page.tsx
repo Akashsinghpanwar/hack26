@@ -1,182 +1,153 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import useSWR from 'swr';
+import { useState, useCallback } from 'react';
 import { Navbar } from '@/components/Navbar';
 import MapSelector from '@/components/journey/MapSelectorWrapper';
-import { TransportSelector } from '@/components/journey/TransportSelector';
 import { ComparisonChart } from '@/components/comparison/ComparisonChart';
-import { MetricsCard } from '@/components/comparison/MetricsCard';
 import { ImpactSummary } from '@/components/comparison/ImpactSummary';
-import { EcoRecommendation } from '@/components/comparison/EcoRecommendation';
-import { HybridJourneyPlanner } from '@/components/comparison/HybridJourneyPlanner';
+import { VehicleLookup } from '@/components/comparison/VehicleLookup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TransportMode, calculateAllModes, ComparisonResult, TRANSPORT_DATA } from '@/lib/calculations';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { TransportMode, calculateAllModes, calculateAllModesWithCustomCar, ComparisonResult, TRANSPORT_DATA } from '@/lib/calculations';
 
 export default function ComparePage() {
-  const { data: session, status } = useSession();
   const [distance, setDistance] = useState<number>(0);
-  const [fromLocation, setFromLocation] = useState<string>('');
-  const [toLocation, setToLocation] = useState<string>('');
-  const [selectedMode, setSelectedMode] = useState<TransportMode>('bike');
+  const [selectedMode, setSelectedMode] = useState<TransportMode | null>(null);
   const [allResults, setAllResults] = useState<ComparisonResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<ComparisonResult | null>(null);
   const [routeCalculated, setRouteCalculated] = useState(false);
-  const [destCoords, setDestCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [customCarCo2, setCustomCarCo2] = useState<number | null>(null);
 
-  // Fetch user stats including lifestyle goals
-  const { data: stats } = useSWR(
-    status === 'authenticated' ? '/api/user/stats' : null,
-    fetcher
-  );
-
-  const userGoals = stats?.data?.lifestyleGoals;
-
-  const handleRouteCalculated = (dist: number, from: string, to: string, destLat?: number, destLon?: number) => {
+  const handleRouteCalculated = useCallback((dist: number, from: string, to: string, destLat?: number, destLon?: number) => {
     setDistance(dist);
-    setFromLocation(from);
-    setToLocation(to);
     setRouteCalculated(true);
-    
-    // Store destination coordinates for parking finder
-    if (destLat && destLon) {
-      setDestCoords({ lat: destLat, lon: destLon });
-    }
-    
-    // Calculate all transport modes for this distance
-    const results = calculateAllModes(dist);
+    setSelectedMode(null);
+    setSelectedResult(null);
+
+    const results = customCarCo2 !== null
+      ? calculateAllModesWithCustomCar(dist, customCarCo2)
+      : calculateAllModes(dist);
     setAllResults(results);
-    
-    // Set selected result based on current mode
-    const result = results.find(r => r.mode === selectedMode) || null;
-    setSelectedResult(result);
-  };
+  }, [customCarCo2]);
 
   const handleModeSelect = (mode: TransportMode) => {
     setSelectedMode(mode);
-    if (allResults.length > 0) {
-      const result = allResults.find(r => r.mode === mode) || null;
-      setSelectedResult(result);
-    }
+    const result = allResults.find(r => r.mode === mode) || null;
+    setSelectedResult(result);
   };
 
+  const handleVehicleFound = useCallback((co2PerKm: number, vehicleInfo: any) => {
+    setCustomCarCo2(co2PerKm);
+    if (distance > 0) {
+      const results = calculateAllModesWithCustomCar(distance, co2PerKm);
+      setAllResults(results);
+      if (selectedMode) {
+        const result = results.find(r => r.mode === selectedMode) || null;
+        setSelectedResult(result);
+      }
+    }
+  }, [distance, selectedMode]);
+
+  // Find most sustainable option
+  const mostSustainable = allResults.length > 0 
+    ? [...allResults].filter(r => r.mode !== 'car').sort((a, b) => b.metrics.co2Saved - a.metrics.co2Saved)[0]
+    : null;
+
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <span>⚖️</span> Compare Transport Modes
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Select your route on the map and compare different transport options.
-          </p>
+
+      <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+        {/* Header - Mobile optimized */}
+        <div className="mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Compare Transport</h1>
+          <p className="text-slate-500 text-xs sm:text-sm">Select route and transport mode</p>
         </div>
 
-        <div className="space-y-8">
-          {/* Map Selector */}
+        <div className="space-y-4">
+          {/* Vehicle Lookup - Collapsible on mobile */}
+          <VehicleLookup onVehicleFound={handleVehicleFound} />
+
+          {/* Map - Standing Rectangle */}
           <MapSelector onRouteCalculated={handleRouteCalculated} />
 
-          {/* Hybrid Journey Planner - Show for longer distances */}
-          {routeCalculated && distance >= 3 && (
-            <HybridJourneyPlanner
-              distance={distance}
-              destinationLat={destCoords?.lat}
-              destinationLon={destCoords?.lon}
-              userGoals={userGoals}
-            />
-          )}
-
-          {/* Eco Recommendations - Show immediately after route is calculated */}
-          {allResults.length > 0 && (
-            <EcoRecommendation
-              results={allResults}
-              distance={distance}
-              onSelectMode={handleModeSelect}
-              currentMode={selectedMode}
-            />
-          )}
-
-          {/* Transport Mode Selection - Show after route is calculated */}
-          {routeCalculated && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-2xl">🚀</span>
-                    Select Your Transport Mode
-                  </span>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {fromLocation} → {toLocation} ({distance} km)
+          {/* Transport Selection + Comparison Tabs - Combined */}
+          {routeCalculated && allResults.length > 0 && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="text-base sm:text-lg font-semibold text-slate-800 flex items-center justify-between">
+                  <span>Select Transport Mode</span>
+                  <span className="text-xs sm:text-sm font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                    {distance.toFixed(1)} km
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <TransportSelector
-                  selected={selectedMode}
-                  onSelect={handleModeSelect}
-                />
+              <CardContent className="px-3 sm:px-6 pb-4">
+                {/* Transport Mode Grid - Mobile optimized */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+                  {allResults.map((result) => {
+                    const data = TRANSPORT_DATA[result.mode];
+                    const isSelected = selectedMode === result.mode;
+                    const isMostSustainable = mostSustainable?.mode === result.mode;
+                    
+                    return (
+                      <button
+                        key={result.mode}
+                        onClick={() => handleModeSelect(result.mode)}
+                        className={`relative p-2 sm:p-3 rounded-lg sm:rounded-xl border-2 transition-all text-center ${
+                          isSelected 
+                            ? 'border-emerald-500 bg-emerald-50 shadow-md scale-[1.02]' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 active:scale-95'
+                        }`}
+                      >
+                        {isMostSustainable && result.mode !== 'car' && (
+                          <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-emerald-500 text-white text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                            BEST
+                          </div>
+                        )}
+                        
+                        <div className="text-xl sm:text-2xl mb-0.5 sm:mb-1">{data.icon}</div>
+                        <div className="font-medium text-[10px] sm:text-xs text-slate-800 truncate">{data.label}</div>
+                        <div className="text-[9px] sm:text-[10px] text-slate-500">{result.metrics.travelTime}m</div>
+                        <div className={`text-[9px] sm:text-[10px] font-medium ${
+                          result.mode === 'car' ? 'text-red-500' : 'text-emerald-600'
+                        }`}>
+                          {result.mode === 'car' 
+                            ? `${result.metrics.co2Emissions.toFixed(1)}kg` 
+                            : `-${result.metrics.co2Saved.toFixed(1)}kg`
+                          }
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Comparison Tabs - Inline with transport selection */}
+                {selectedResult && (
+                  <Tabs defaultValue="co2" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 h-9 sm:h-10 mb-3">
+                      <TabsTrigger value="co2" className="text-xs sm:text-sm">CO₂</TabsTrigger>
+                      <TabsTrigger value="time" className="text-xs sm:text-sm">Time</TabsTrigger>
+                      <TabsTrigger value="calories" className="text-xs sm:text-sm">Calories</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="co2" className="mt-0">
+                      <ComparisonChart results={allResults} metric="co2" />
+                    </TabsContent>
+                    <TabsContent value="time" className="mt-0">
+                      <ComparisonChart results={allResults} metric="time" />
+                    </TabsContent>
+                    <TabsContent value="calories" className="mt-0">
+                      <ComparisonChart results={allResults} metric="calories" />
+                    </TabsContent>
+                  </Tabs>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {allResults.length > 0 && (
-            <>
-              {/* Quick Comparison Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {allResults.map((result) => {
-                  const transportData = TRANSPORT_DATA[result.mode];
-                  return (
-                    <div
-                      key={result.mode}
-                      onClick={() => handleModeSelect(result.mode)}
-                      className={`cursor-pointer transition-all ${
-                        selectedResult?.mode === result.mode 
-                          ? 'ring-2 ring-primary ring-offset-2 scale-105' 
-                          : 'hover:shadow-lg hover:scale-102'
-                      }`}
-                    >
-                      <MetricsCard
-                        title={transportData.label}
-                        value={result.metrics.co2Emissions}
-                        unit="kg CO2"
-                        icon={transportData.icon}
-                        comparison={`${result.metrics.travelTime} min`}
-                        comparisonColor={result.mode === 'car' ? 'red' : 'green'}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Detailed Charts */}
-              <Tabs defaultValue="co2" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 max-w-md">
-                  <TabsTrigger value="co2">CO2 Emissions</TabsTrigger>
-                  <TabsTrigger value="time">Travel Time</TabsTrigger>
-                  <TabsTrigger value="calories">Calories</TabsTrigger>
-                </TabsList>
-                <TabsContent value="co2" className="mt-4">
-                  <ComparisonChart results={allResults} metric="co2" />
-                </TabsContent>
-                <TabsContent value="time" className="mt-4">
-                  <ComparisonChart results={allResults} metric="time" />
-                </TabsContent>
-                <TabsContent value="calories" className="mt-4">
-                  <ComparisonChart results={allResults} metric="calories" />
-                </TabsContent>
-              </Tabs>
-
-              {/* Selected Mode Impact Summary */}
-              {selectedResult && (
-                <ImpactSummary result={selectedResult} distance={distance} />
-              )}
-            </>
+          {/* Impact Summary - Mobile optimized */}
+          {selectedResult && (
+            <ImpactSummary result={selectedResult} distance={distance} />
           )}
         </div>
       </main>
