@@ -58,30 +58,30 @@ export default function AchievementsPage() {
     <div className="min-h-screen bg-muted/30">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+      <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2">
             <span>🎖️</span> Achievements
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-xs sm:text-base">
             Track your progress and unlock badges for sustainable travel milestones.
           </p>
         </div>
 
-        <Card className="mb-8">
-          <CardContent className="py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Your Progress</h3>
-                <p className="text-muted-foreground">
-                  Keep traveling sustainably to unlock more achievements!
+        <Card className="mb-4 sm:mb-8">
+          <CardContent className="py-4 sm:py-6 px-3 sm:px-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm sm:text-lg font-semibold">Your Progress</h3>
+                <p className="text-muted-foreground text-xs sm:text-base truncate">
+                  Keep traveling sustainably to unlock more!
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold text-primary">
+              <div className="text-right shrink-0">
+                <div className="text-2xl sm:text-4xl font-bold text-primary">
                   {unlockedCount}/{totalCount}
                 </div>
-                <div className="text-sm text-muted-foreground">achievements unlocked</div>
+                <div className="text-[10px] sm:text-sm text-muted-foreground">unlocked</div>
               </div>
             </div>
           </CardContent>

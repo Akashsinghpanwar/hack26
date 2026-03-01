@@ -305,7 +305,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
           {/* Main Chart Area */}
           <Card className="border-0 shadow-sm bg-white lg:col-span-2 overflow-hidden ring-1 ring-slate-100">
             <CardHeader className="border-b border-slate-50 pb-4">
@@ -352,17 +352,17 @@ export default function DashboardPage() {
           </Card>
 
           {/* Gamification Panel */}
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-8">
             {/* Streak Card - Highly Addictive */}
             <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-900 to-slate-800 text-white relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
-              <CardContent className="p-8 relative z-10 flex flex-col items-center justify-center min-h-[220px]">
-                <div className="absolute top-4 right-4 bg-white/10 p-2 rounded-xl backdrop-blur-md">
-                  <Trophy className="w-5 h-5 text-amber-400" />
+              <CardContent className="p-5 sm:p-8 relative z-10 flex flex-col items-center justify-center min-h-[180px] sm:min-h-[220px]">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white/10 p-1.5 sm:p-2 rounded-xl backdrop-blur-md">
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                 </div>
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <Flame className="w-10 h-10 text-orange-500 animate-pulse" />
-                  <span className="text-7xl font-black tracking-tighter drop-shadow-md">{userStats?.currentStreak || 0}</span>
+                <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
+                  <Flame className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500 animate-pulse" />
+                  <span className="text-5xl sm:text-7xl font-black tracking-tighter drop-shadow-md">{userStats?.currentStreak || 0}</span>
                 </div>
                 <div className="text-xl font-bold text-slate-200 mb-4 tracking-tight">Day Streak!</div>
                 <div className="w-full bg-white/10 rounded-full h-2 mb-2 overflow-hidden">
@@ -501,13 +501,13 @@ export default function DashboardPage() {
       {/* Floating Reward Icon Button */}
       <button
         onClick={() => setShowRewardPopup(true)}
-        className={`fixed top-20 right-6 z-40 p-3 rounded-full shadow-lg transition-all hover:scale-110 ${
+        className={`fixed top-20 right-3 sm:right-6 z-40 p-2.5 sm:p-3 rounded-full shadow-lg transition-all hover:scale-110 ${
           dailyReward?.data?.canClaimReward 
             ? 'bg-emerald-500 text-white' 
             : 'bg-slate-800 text-emerald-400'
         }`}
       >
-        <TreeDeciduous className="w-6 h-6" />
+        <TreeDeciduous className="w-5 h-5 sm:w-6 sm:h-6" />
         {dailyReward?.data?.canClaimReward && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white">!</span>
         )}

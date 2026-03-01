@@ -203,6 +203,7 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
   
   // Parking state
   const [selectedParking, setSelectedParking] = useState<ParkingSpot | null>(null);
+  const [allParkingSpots, setAllParkingSpots] = useState<ParkingSpot[]>([]);
   
   // Departure time state
   const [departureTime, setDepartureTime] = useState<string>('');
@@ -496,6 +497,7 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
     setGoogleRouteCo2(null);
     setGoogleRouteCalories(null);
     setSelectedParking(null);
+    setAllParkingSpots([]);
     
     // Fetch appropriate route based on mode
     if (mode === 'bus' || mode === 'train') {
@@ -1169,6 +1171,7 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
                 destinationLon={endLocation.lng}
                 routeCoords={googleRouteCoords.length > 0 ? googleRouteCoords : routeCoords}
                 onSelectParking={handleParkingSelect}
+                onParkingSpotsFound={setAllParkingSpots}
                 autoSearch={true}
               />
             )}
@@ -1191,6 +1194,8 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
               const { transitDistance, activeDistance, activeCalories } = getHybridRouteSegments();
               const transitPercent = distance ? Math.round((transitDistance / distance) * 100) : 80;
               const activePercent = 100 - transitPercent;
+              // CO2 for hybrid mode: transit portion emits 89 g/km, active portion emits 0
+              const hybridCo2 = Math.round(transitDistance * 89);
               return (
                 <>
                   <div className="flex items-center gap-1 mb-3">
@@ -1214,13 +1219,20 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
                     </span>
                   </div>
                   
-                  {/* Calorie Burn Display */}
-                  <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-center">
+                  {/* Calorie Burn & CO2 Saved Display */}
+                  <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-center gap-3">
                     <div className="bg-white rounded-lg px-4 py-2 border border-orange-200 flex items-center gap-2">
                       <span className="text-xl">🔥</span>
                       <div>
                         <div className="text-lg font-bold text-orange-600">{activeCalories} cal</div>
                         <div className="text-[10px] text-slate-500">Burned from {selectedMode === 'walk' ? 'walking' : 'cycling'}</div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg px-4 py-2 border border-emerald-200 flex items-center gap-2">
+                      <span className="text-xl">🌱</span>
+                      <div>
+                        <div className="text-lg font-bold text-emerald-600">{hybridCo2} g</div>
+                        <div className="text-[10px] text-slate-500">CO₂ emitted</div>
                       </div>
                     </div>
                   </div>
@@ -1589,6 +1601,34 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
               </>
             )}
 
+            {/* All Parking Spots Markers - Show all spots for car mode */}
+            {transportMode === 'car' && allParkingSpots.map((spot) => (
+              <Marker
+                key={spot.id}
+                position={[spot.lat, spot.lon]}
+                icon={L.divIcon({
+                  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <circle cx="12" cy="12" r="10" fill="${spot.fee === 'free' ? '#10b981' : spot.fee === 'paid' ? '#f59e0b' : '#94a3b8'}" stroke="white" stroke-width="2" opacity="${selectedParking?.id === spot.id ? '1' : '0.8'}"/>
+                    <text x="12" y="16" text-anchor="middle" font-size="11" font-weight="bold" fill="white">P</text>
+                  </svg>`,
+                  className: 'parking-marker',
+                  iconSize: [24, 24],
+                  iconAnchor: [12, 12],
+                })}
+                eventHandlers={{
+                  click: () => setSelectedParking(spot),
+                }}
+              >
+                <Popup>
+                  <div className="font-semibold text-slate-800">{spot.name}</div>
+                  <div className="text-sm text-slate-500">{spot.distance}m from destination</div>
+                  <div className={`text-xs font-bold mt-1 ${spot.fee === 'free' ? 'text-emerald-600' : spot.fee === 'paid' ? 'text-amber-600' : 'text-slate-500'}`}>
+                    {spot.fee === 'free' ? 'FREE PARKING' : spot.fee === 'paid' ? 'PAID PARKING' : 'CHECK FEE'}
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
             {/* Selected Parking Marker - Only show for car mode */}
             {selectedParking && transportMode === 'car' && (
               <Marker
@@ -1644,6 +1684,7 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
             <div className="flex flex-col gap-3 bg-gradient-to-r from-orange-50 to-green-50 rounded-xl px-5 py-4 w-full">
               {(() => {
                 const { transitDistance, activeDistance, activeCalories } = getHybridRouteSegments();
+                const hybridCo2Bottom = Math.round(transitDistance * 89);
                 return (
                   <>
                     {/* Split Journey Header */}
@@ -1680,18 +1721,24 @@ export default function MapSelector({ onRouteCalculated }: MapSelectorProps) {
                       </div>
                     </div>
 
-                    {/* Time & Calorie Estimates */}
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                    {/* Time, Calorie & CO2 Estimates */}
+                    <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200">
                       <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
                         <Icons.clock />
                         <span>
-                          ~{Math.round(transitDistance / 25 * 60 + activeDistance / (selectedMode === 'walk' ? 5 : 15) * 60)} min total
+                          ~{Math.round(transitDistance / 25 * 60 + activeDistance / (selectedMode === 'walk' ? 5 : 15) * 60)} min
                         </span>
                       </div>
                       <div className="flex items-center justify-center gap-2 text-sm text-orange-600">
                         <span className="text-lg">🔥</span>
                         <span>
-                          ~{activeCalories} cal burned
+                          ~{activeCalories} cal
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm text-emerald-600">
+                        <span className="text-lg">🌱</span>
+                        <span>
+                          ~{hybridCo2Bottom} g CO₂
                         </span>
                       </div>
                     </div>

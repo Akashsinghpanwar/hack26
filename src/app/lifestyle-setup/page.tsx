@@ -92,17 +92,17 @@ export default function LifestyleSetupPage() {
     label: string;
     icon: string;
   }) => (
-    <div className="space-y-3">
-      <Label className="flex items-center gap-2 text-lg">
-        <span className="text-2xl">{icon}</span>
+    <div className="space-y-2 sm:space-y-3">
+      <Label className="flex items-center gap-2 text-sm sm:text-lg">
+        <span className="text-xl sm:text-2xl">{icon}</span>
         {label}
       </Label>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {dayOptions.map((option) => (
           <button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
               value === option.value
                 ? 'bg-primary text-white ring-2 ring-primary ring-offset-2'
                 : 'bg-muted hover:bg-muted/80'
@@ -124,16 +124,16 @@ export default function LifestyleSetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 py-6 sm:py-8 px-3 sm:px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
             {step === 1 && '🏃 Set Your Activity Goals'}
             {step === 2 && '🚗 Driving Habits'}
             {step === 3 && '🎯 Health & Fitness Goals'}
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-1 sm:mt-2 text-xs sm:text-sm">
             {step === 1 && 'How often do you want to use active transport each week?'}
             {step === 2 && 'Help us understand your current driving habits'}
             {step === 3 && 'What are you hoping to achieve?'}
@@ -201,17 +201,17 @@ export default function LifestyleSetupPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-lg">
-                  <span className="text-2xl">🚗</span>
+              <div className="space-y-2 sm:space-y-3">
+                <Label className="flex items-center gap-2 text-sm sm:text-lg">
+                  <span className="text-xl sm:text-2xl">🚗</span>
                   Maximum Driving Days Per Week
                 </Label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {[0, 1, 2, 3, 4, 5, 6, 7].map((days) => (
                     <button
                       key={days}
                       onClick={() => setMaxDrivingDays(days)}
-                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                         maxDrivingDays === days
                           ? days === 0 
                             ? 'bg-green-500 text-white ring-2 ring-green-500 ring-offset-2'
@@ -259,8 +259,8 @@ export default function LifestyleSetupPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Fitness Goal */}
-              <div className="space-y-3">
-                <Label className="text-lg">Primary Goal</Label>
+              <div className="space-y-2 sm:space-y-3">
+                <Label className="text-sm sm:text-lg">Primary Goal</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {fitnessGoals.map((goal) => (
                     <button
@@ -283,8 +283,8 @@ export default function LifestyleSetupPage() {
               </div>
 
               {/* Weekly Calorie Target */}
-              <div className="space-y-3">
-                <Label className="text-lg">Weekly Calorie Burn Target</Label>
+              <div className="space-y-2 sm:space-y-3">
+                <Label className="text-sm sm:text-lg">Weekly Calorie Burn Target</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {calorieTargets.map((target) => (
                     <button
@@ -325,8 +325,8 @@ export default function LifestyleSetupPage() {
         {step === 3 && (
           <Card className="mt-4 border-green-200 bg-green-50">
             <CardContent className="pt-4">
-              <h4 className="font-semibold text-green-800 mb-3">Your Weekly Plan:</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-sm">
+              <h4 className="font-semibold text-green-800 mb-2 sm:mb-3 text-sm">Your Weekly Plan:</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-center text-sm">
                 <div className="bg-white rounded-lg p-2">
                   <div className="text-xl">🚶</div>
                   <div className="font-bold">{walkingGoal}</div>

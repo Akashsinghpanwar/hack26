@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Multiple Overpass API servers for fallback
+const OVERPASS_SERVERS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+];
+
 interface ParkingSpot {
   id: string;
   name: string;
@@ -11,6 +18,33 @@ interface ParkingSpot {
   type: string;
   capacity?: number;
   surface?: string;
+}
+
+// Try multiple Overpass servers with fallback
+async function fetchFromOverpass(query: string): Promise<any> {
+  for (const server of OVERPASS_SERVERS) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per server
+      
+      const response = await fetch(server, {
+        method: 'POST',
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (err) {
+      console.log(`Overpass server ${server} failed, trying next...`);
+      continue;
+    }
+  }
+  throw new Error('All Overpass servers failed');
 }
 
 export async function GET(request: NextRequest) {
@@ -36,19 +70,7 @@ export async function GET(request: NextRequest) {
       out body center;
     `;
 
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(overpassQuery)}`,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch parking data from OpenStreetMap');
-    }
-
-    const data = await response.json();
+    const data = await fetchFromOverpass(overpassQuery);
 
     // Process and format parking spots
     const parkingSpots: ParkingSpot[] = data.elements
@@ -126,19 +148,16 @@ export async function POST(request: NextRequest) {
       out body center;
     `;
 
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(overpassQuery)}`,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch parking data from OpenStreetMap');
+    let data;
+    try {
+      data = await fetchFromOverpass(overpassQuery);
+    } catch (err) {
+      // Return empty result if all servers fail
+      return NextResponse.json({
+        success: true,
+        data: { parkingSpots: [], searchLocation: { lat: destinationLat, lon: destinationLon }, radius, totalFound: 0 }
+      });
     }
-
-    const data = await response.json();
 
     // Process and filter parking spots based on route proximity
     let parkingSpots: ParkingSpot[] = data.elements

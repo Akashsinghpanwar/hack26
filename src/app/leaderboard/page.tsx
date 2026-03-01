@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
@@ -405,7 +405,7 @@ function LevelGuide({ currentScore }: { currentScore: number }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-5 pb-5">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-4 gap-1.5 sm:gap-2">
           {LEVELS.map((lvl) => {
             const isActive = lvl.level === currentLevel.level;
             const isPast = lvl.level < currentLevel.level;
@@ -420,7 +420,7 @@ function LevelGuide({ currentScore }: { currentScore: number }) {
                 )}
               >
                 <div className={cn(
-                  'w-9 h-9 mx-auto rounded-xl bg-gradient-to-br flex items-center justify-center text-lg shadow-sm transition-transform',
+                  'w-8 h-8 sm:w-9 sm:h-9 mx-auto rounded-lg sm:rounded-xl bg-gradient-to-br flex items-center justify-center text-base sm:text-lg shadow-sm transition-transform',
                   isActive ? 'scale-110' : 'group-hover:scale-110',
                   lvl.color
                 )}>
@@ -455,7 +455,7 @@ export default function LeaderboardPage() {
     return (
       <div className="min-h-screen bg-[#f8fafc]">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main className="w-full max-w-[1600px] mx-auto px-3 sm:px-4 md:px-8 xl:px-12 py-8">
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="relative">
               <div className="w-14 h-14 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
@@ -493,7 +493,7 @@ export default function LeaderboardPage() {
         }
       `}</style>
 
-      <main className="container mx-auto px-3 sm:px-4 py-5 sm:py-8 max-w-6xl">
+      <main className="w-full max-w-[1600px] mx-auto px-3 sm:px-4 md:px-8 xl:px-12 py-5 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-6 sm:mb-8">
           <div>

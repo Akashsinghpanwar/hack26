@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -206,35 +207,32 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-3 sm:p-4">
       <Card className="w-full max-w-lg shadow-xl border-0">
-        <CardHeader className="text-center pb-2">
-          <Link href="/" className="flex items-center justify-center gap-2 mb-3">
-            <span className="text-3xl">🌍</span>
-            <span className="font-bold text-2xl bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-              EcoTravel
-            </span>
+        <CardHeader className="text-center pb-2 px-3 sm:px-6">
+          <Link href="/" className="flex items-center justify-center mb-3">
+            <Image src="/logo.png" alt="Eco29" width={140} height={46} className="h-9 sm:h-10 w-auto object-contain" />
           </Link>
-          <CardTitle className="text-xl">{stepInfo[step - 1].title}</CardTitle>
-          <CardDescription>{stepInfo[step - 1].desc}</CardDescription>
+          <CardTitle className="text-lg sm:text-xl">{stepInfo[step - 1].title}</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">{stepInfo[step - 1].desc}</CardDescription>
           
           {/* Progress Steps */}
-          <div className="flex justify-center items-center gap-1 mt-4">
+          <div className="flex justify-center items-center gap-0.5 sm:gap-1 mt-3 sm:mt-4">
             {stepInfo.map((s, i) => {
               const StepIcon = s.icon;
               const isActive = i + 1 === step;
               const isComplete = i + 1 < step;
               return (
                 <div key={i} className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all ${
                     isActive ? 'bg-emerald-500 text-white scale-110' : 
                     isComplete ? 'bg-emerald-100 text-emerald-600' : 
                     'bg-slate-100 text-slate-400'
                   }`}>
-                    {isComplete ? <Check className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
+                    {isComplete ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <StepIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                   </div>
                   {i < stepInfo.length - 1 && (
-                    <div className={`w-6 h-0.5 ${isComplete ? 'bg-emerald-300' : 'bg-slate-200'}`} />
+                    <div className={`w-4 sm:w-6 h-0.5 ${isComplete ? 'bg-emerald-300' : 'bg-slate-200'}`} />
                   )}
                 </div>
               );
@@ -242,7 +240,7 @@ export default function RegisterPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="pt-4">
+        <CardContent className="pt-4 px-3 sm:px-6">
           {error && (
             <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 rounded-lg">
               {error}
@@ -362,13 +360,13 @@ export default function RegisterPage() {
                 <span className="text-lg">🚗</span>
                 Maximum Driving Days Per Week
               </Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                 {[0, 1, 2, 3, 4, 5, 6, 7].map((days) => (
                   <button
                     key={days}
                     type="button"
                     onClick={() => setMaxDrivingDays(days)}
-                    className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                    className={`p-2 sm:p-3 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                       maxDrivingDays === days
                         ? days === 0 
                           ? 'bg-emerald-500 text-white ring-2 ring-emerald-500 ring-offset-1'
@@ -422,7 +420,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Weekly Calorie Target</Label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                   {calorieTargets.map((target) => (
                     <button
                       key={target.value}
@@ -446,7 +444,7 @@ export default function RegisterPage() {
               {/* Summary */}
               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
                 <h4 className="font-semibold text-emerald-800 text-sm mb-2">Your Weekly Plan:</h4>
-                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 text-center text-xs">
                   <div className="bg-white rounded-lg p-2">
                     <div className="text-lg">🚶</div>
                     <div className="font-bold">{walkingGoal}</div>

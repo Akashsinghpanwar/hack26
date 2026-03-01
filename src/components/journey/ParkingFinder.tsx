@@ -18,11 +18,12 @@ interface ParkingFinderProps {
   destinationLon?: number;
   routeCoords?: [number, number][]; // Route polyline coordinates for filtering
   onSelectParking?: (spot: ParkingSpot) => void;
+  onParkingSpotsFound?: (spots: ParkingSpot[]) => void; // Callback to pass all spots for map display
   autoSearch?: boolean; // Auto-search on mount
 }
 
 // Silent parking finder - runs in background, no UI
-export function ParkingFinder({ destinationLat, destinationLon, routeCoords, onSelectParking, autoSearch = false }: ParkingFinderProps) {
+export function ParkingFinder({ destinationLat, destinationLon, routeCoords, onSelectParking, onParkingSpotsFound, autoSearch = false }: ParkingFinderProps) {
   const [searched, setSearched] = useState(false);
 
   const searchParking = async () => {
@@ -31,6 +32,11 @@ export function ParkingFinder({ destinationLat, destinationLon, routeCoords, onS
     }
 
     try {
+      // Limit route coords to avoid large request payload
+      const limitedRouteCoords = routeCoords && routeCoords.length > 100 
+        ? routeCoords.filter((_, i) => i % Math.ceil(routeCoords.length / 100) === 0)
+        : routeCoords;
+
       // Use POST API with route coordinates to find parking along the route
       const response = await fetch('/api/parking', {
         method: 'POST',
@@ -38,10 +44,16 @@ export function ParkingFinder({ destinationLat, destinationLon, routeCoords, onS
         body: JSON.stringify({
           destinationLat,
           destinationLon,
-          routeCoords: routeCoords || [],
+          routeCoords: limitedRouteCoords || [],
           radius: 2000,
         }),
       });
+      
+      if (!response.ok) {
+        console.error('Parking API error:', response.status);
+        return;
+      }
+      
       const data = await response.json();
 
       if (data.success) {
@@ -49,6 +61,12 @@ export function ParkingFinder({ destinationLat, destinationLon, routeCoords, onS
         
         // Auto-select nearest parking on the route (prioritize free, otherwise nearest any)
         const allSpots = data.data.parkingSpots as ParkingSpot[];
+        
+        // Pass all spots to parent for map display
+        if (onParkingSpotsFound) {
+          onParkingSpotsFound(allSpots);
+        }
+        
         if (allSpots.length > 0 && onSelectParking) {
           const freeSpots = allSpots.filter((s: ParkingSpot) => s.fee === 'free');
           // Select nearest free parking if available, otherwise nearest any parking

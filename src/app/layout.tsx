@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EcoTravel - Sustainable Travel Decision Tool",
+  title: "Eco29 - Sustainable Travel Decision Tool",
   description: "Make sustainable travel decisions visible and easy to understand. Compare transport modes, track CO2 savings, and earn achievements.",
 };
 
@@ -25,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
