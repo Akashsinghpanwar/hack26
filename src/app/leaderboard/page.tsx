@@ -79,94 +79,6 @@ function AnimatedNumber({ value, duration = 1200 }: { value: number; duration?: 
   return <>{display}</>;
 }
 
-// ─── Podium Component ───────────────────────────────────────────
-function Podium({ top3, type }: { top3: any[]; type: 'co2' | 'calories' }) {
-  if (top3.length < 1) return null;
-
-  const podiumConfig = [
-    {
-      order: 1, height: 'h-32 sm:h-40', bg: 'from-amber-400 via-yellow-300 to-amber-500',
-      ring: 'ring-amber-400', crown: true, label: '1st', glow: 'shadow-amber-300/50',
-      iconBg: 'bg-amber-100', textColor: 'text-amber-700', size: 'w-16 h-16 sm:w-20 sm:h-20',
-    },
-    {
-      order: 0, height: 'h-24 sm:h-28', bg: 'from-slate-300 via-slate-200 to-slate-400',
-      ring: 'ring-slate-300', crown: false, label: '2nd', glow: 'shadow-slate-300/40',
-      iconBg: 'bg-slate-100', textColor: 'text-slate-600', size: 'w-14 h-14 sm:w-16 sm:h-16',
-    },
-    {
-      order: 2, height: 'h-20 sm:h-24', bg: 'from-orange-400 via-orange-300 to-orange-500',
-      ring: 'ring-orange-300', crown: false, label: '3rd', glow: 'shadow-orange-300/40',
-      iconBg: 'bg-orange-100', textColor: 'text-orange-600', size: 'w-14 h-14 sm:w-16 sm:h-16',
-    },
-  ];
-
-  // display order: 2nd, 1st, 3rd
-  const displayOrder = [1, 0, 2];
-
-  return (
-    <div className="flex items-end justify-center gap-2 sm:gap-4 pt-8 pb-4 px-2">
-      {displayOrder.map((podiumIdx) => {
-        const config = podiumConfig[podiumIdx];
-        const entry = top3[podiumIdx];
-        if (!entry) return <div key={podiumIdx} className="flex-1" />;
-        const level = getLevel(entry.co2Saved * 10);
-        const value = type === 'co2' ? entry.co2Saved?.toFixed(1) : Math.round(entry.caloriesBurned);
-
-        return (
-          <div
-            key={entry.userId}
-            className="flex flex-col items-center flex-1 max-w-[160px] group animate-[fadeSlideUp_0.6s_ease-out_both]"
-            style={{ animationDelay: `${podiumIdx * 150}ms` }}
-          >
-            {/* Crown for 1st */}
-            {config.crown && (
-              <div className="mb-1 animate-bounce">
-                <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 drop-shadow-lg" />
-              </div>
-            )}
-
-            {/* Avatar */}
-            <div className={cn(
-              'relative rounded-full bg-gradient-to-br ring-4 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300 mb-3',
-              config.bg, config.ring, config.glow, config.size
-            )}>
-              <span className="text-2xl sm:text-3xl drop-shadow">{level.icon}</span>
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center shadow-md text-xs font-black">
-                {config.label.replace(/\D/g, '')}
-              </div>
-            </div>
-
-            {/* Name */}
-            <p className="font-bold text-slate-800 text-xs sm:text-sm truncate max-w-full text-center">
-              {entry.userName}
-            </p>
-            <p className={cn('text-[10px] sm:text-xs font-semibold', config.textColor)}>
-              {level.name}
-            </p>
-
-            {/* Podium Bar */}
-            <div className={cn(
-              'w-full mt-2 rounded-t-xl bg-gradient-to-t relative overflow-hidden transition-all duration-500',
-              config.bg, config.height
-            )}>
-              <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]" />
-              <div className="relative flex flex-col items-center justify-center h-full px-1">
-                <span className="text-lg sm:text-2xl font-black text-white drop-shadow-sm">
-                  {value}
-                </span>
-                <span className="text-[9px] sm:text-[10px] font-medium text-white/80 uppercase tracking-wider">
-                  {type === 'co2' ? 'kg CO₂' : 'kcal'}
-                </span>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ─── Leaderboard Row ────────────────────────────────────────────
 function LeaderboardRow({
   entry,
@@ -532,9 +444,10 @@ export default function LeaderboardPage() {
   const { data: session } = useSession();
   const [period, setPeriod] = useState<'week' | 'month' | 'all'>('week');
   const [type, setType] = useState<'co2' | 'calories'>('co2');
+  const [scope, setScope] = useState<'global' | 'friends'>('global');
 
   const { data, isLoading } = useSWR(
-    `/api/leaderboard?period=${period}&type=${type}`,
+    `/api/leaderboard?period=${period}&type=${type}&scope=${scope}`,
     fetcher
   );
 
@@ -606,6 +519,23 @@ export default function LeaderboardPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2 mb-6">
+          {/* Scope Filter - Friends/Global */}
+          <div className="flex gap-1 bg-white rounded-full p-1 shadow-sm ring-1 ring-slate-100">
+            {(['global', 'friends'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                className={cn(
+                  'px-3.5 sm:px-5 py-2 text-xs sm:text-sm rounded-full transition-all duration-200 font-medium flex items-center gap-1.5',
+                  scope === s
+                    ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-md shadow-violet-200'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                )}
+              >
+                {s === 'global' ? <><Trophy className="w-3.5 h-3.5" /> Global</> : <><Users className="w-3.5 h-3.5" /> Friends</>}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-1 bg-white rounded-full p-1 shadow-sm ring-1 ring-slate-100">
             {(['week', 'month', 'all'] as const).map((p) => (
               <button
@@ -643,15 +573,6 @@ export default function LeaderboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
           {/* Main Leaderboard Column */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Podium */}
-            {top3.length > 0 && (
-              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden ring-1 ring-slate-100/50">
-                <CardContent className="p-2 sm:p-4">
-                  <Podium top3={top3} type={type} />
-                </CardContent>
-              </Card>
-            )}
-
             {/* Rankings List */}
             <Card className="border-0 shadow-lg bg-white/60 backdrop-blur-sm ring-1 ring-slate-100/50">
               <CardHeader className="pb-2 px-4 sm:px-5 pt-4 sm:pt-5">
@@ -661,7 +582,24 @@ export default function LeaderboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-4 space-y-2">
-                {entries.length === 0 ? (
+                {scope === 'friends' ? (
+                  // Dummy friends data
+                  [
+                    { rank: 1, userId: 'f1', userName: 'Sarah Johnson', co2Saved: 18.5, caloriesBurned: 2450, isCurrentUser: false },
+                    { rank: 2, userId: 'f2', userName: 'Mike Chen', co2Saved: 15.2, caloriesBurned: 1890, isCurrentUser: false },
+                    { rank: 3, userId: 'f3', userName: 'You', co2Saved: 12.8, caloriesBurned: 1650, isCurrentUser: true },
+                    { rank: 4, userId: 'f4', userName: 'Emma Wilson', co2Saved: 10.4, caloriesBurned: 1420, isCurrentUser: false },
+                    { rank: 5, userId: 'f5', userName: 'David Park', co2Saved: 8.9, caloriesBurned: 1180, isCurrentUser: false },
+                  ].map((entry, idx) => (
+                    <LeaderboardRow
+                      key={entry.userId}
+                      entry={entry}
+                      type={type}
+                      isCurrentUser={entry.isCurrentUser}
+                      animDelay={idx * 60}
+                    />
+                  ))
+                ) : entries.length === 0 ? (
                   <div className="text-center py-16 px-4">
                     <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
                       <Trophy className="w-7 h-7 text-slate-300" />

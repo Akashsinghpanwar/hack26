@@ -284,7 +284,7 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
                   <div className="text-xl font-bold text-emerald-600">{plan.co2Saved}</div>
-                  <div className="text-xs text-emerald-700 font-medium">kg CO2 saved</div>
+                  <div className="text-xs text-emerald-700 font-medium">kg CO₂ saved</div>
                 </div>
                 <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
                   <div className="text-xl font-bold text-orange-600">{plan.totalCalories}</div>
@@ -295,6 +295,34 @@ export function HybridJourneyPlanner({ distance, destinationLat, destinationLon,
                   <div className="text-xs text-sky-700 font-medium">minutes</div>
                 </div>
               </div>
+
+              {/* Walking CO₂ Savings Highlight */}
+              {plan.segments.some(s => s.mode === 'walk') && (() => {
+                const walkSegment = plan.segments.find(s => s.mode === 'walk');
+                if (!walkSegment) return null;
+                const walkCo2Saved = Math.round(walkSegment.distance * TRANSPORT_DATA.car.co2PerKm * 100) / 100;
+                return (
+                  <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🚶</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-blue-800">
+                          Walking saves {walkCo2Saved} kg CO₂
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          By walking {walkSegment.distance.toFixed(1)}km instead of driving, you avoid {walkCo2Saved} kg of carbon emissions
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-xs font-bold">0 emissions</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>
