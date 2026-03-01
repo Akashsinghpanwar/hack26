@@ -3,11 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-const DAILY_LOGIN_COINS = 10;
-const COINS_FOR_TREE = 100;
+const COINS_FOR_TREE = 5000;
 
-// Streak rewards: leaves earned per day
-const STREAK_REWARDS = [5, 10, 15, 20, 30, 40, 50]; // Day 1-7
+// Streak rewards: coins earned per day (Day 1-7, then resets)
+const STREAK_REWARDS = [5, 10, 15, 20, 30, 40, 50];
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user already claimed today's reward
     const alreadyClaimed = lastLogin && lastLogin.getTime() === today.getTime();
-    const coins = (user as any).coins || 0;
+    const totalCoins = (user as any).totalCoinsEarned || 0;
     
     // Calculate current streak (check if it's still valid)
     let currentStreak = (user as any).streak || 0;
@@ -47,27 +46,26 @@ export async function GET(request: NextRequest) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       
-      // If last streak was today, keep streak as is
-      // If last streak was yesterday, streak is valid
-      // Otherwise, streak should reset (but we show current for display)
       if (lastStreakDate.getTime() !== today.getTime() && lastStreakDate.getTime() !== yesterday.getTime()) {
-        currentStreak = 0; // Streak broken, will reset to 1 on next claim
+        currentStreak = 0;
       }
     }
+
+    // Calculate next reward amount based on streak
+    const nextStreak = currentStreak >= 7 ? 1 : (currentStreak || 0) + 1;
+    const nextRewardAmount = STREAK_REWARDS[nextStreak - 1] || 5;
 
     return NextResponse.json({
       success: true,
       data: {
-        coins: coins,
+        totalCoins: totalCoins,
         treesPlanted: (user as any).treesPlanted || 0,
-        totalCoinsEarned: (user as any).totalCoinsEarned || 0,
         canClaimReward: !alreadyClaimed,
-        dailyRewardAmount: DAILY_LOGIN_COINS,
         coinsForTree: COINS_FOR_TREE,
-        coinsToNextTree: COINS_FOR_TREE - (coins % COINS_FOR_TREE),
-        // Streak data
-        streak: currentStreak || 1,
-        totalLeaves: (user as any).totalLeaves || 0,
+        coinsToNextTree: COINS_FOR_TREE - (totalCoins % COINS_FOR_TREE),
+        streak: currentStreak || 0,
+        nextRewardAmount: nextRewardAmount,
+        streakRewards: STREAK_REWARDS,
       }
     });
   } catch (error) {
@@ -129,54 +127,42 @@ export async function POST(request: NextRequest) {
       // Otherwise, streak resets to 1
     }
     
-    // Calculate leaves earned based on streak day
-    const leavesEarned = STREAK_REWARDS[newStreak - 1] || 5;
-    const currentTotalLeaves = (user as any).totalLeaves || 0;
-    const newTotalLeaves = currentTotalLeaves + leavesEarned;
-
-    // Calculate new coins and check for tree planting
-    const currentCoins = (user as any).coins || 0;
-    const currentTreesPlanted = (user as any).treesPlanted || 0;
-    const currentTotalCoinsEarned = (user as any).totalCoinsEarned || 0;
+    // Calculate coins earned based on streak day
+    const coinsEarned = STREAK_REWARDS[newStreak - 1] || 5;
+    const currentTotalCoins = (user as any).totalCoinsEarned || 0;
+    const newTotalCoins = currentTotalCoins + coinsEarned;
     
-    const newCoins = currentCoins + DAILY_LOGIN_COINS;
-    const treesToPlant = Math.floor(newCoins / COINS_FOR_TREE) - Math.floor(currentCoins / COINS_FOR_TREE);
-    const finalCoins = newCoins % COINS_FOR_TREE;
+    // Calculate tree planting
+    const currentTreesPlanted = (user as any).treesPlanted || 0;
+    const treesToPlant = Math.floor(newTotalCoins / COINS_FOR_TREE) - Math.floor(currentTotalCoins / COINS_FOR_TREE);
 
-    // Update user using Prisma update
+    // Update user
     await prisma.user.update({
       where: { id: userId },
       data: {
-        coins: finalCoins,
         lastLoginDate: new Date(),
+        totalCoinsEarned: newTotalCoins,
         treesPlanted: currentTreesPlanted + treesToPlant,
-        totalCoinsEarned: currentTotalCoinsEarned + DAILY_LOGIN_COINS,
-        // Streak updates
         streak: newStreak,
-        totalLeaves: newTotalLeaves,
         lastStreakDate: new Date(),
       } as any
     });
 
     const finalTreesPlanted = currentTreesPlanted + treesToPlant;
-    const finalTotalCoinsEarned = currentTotalCoinsEarned + DAILY_LOGIN_COINS;
 
     return NextResponse.json({
       success: true,
       data: {
-        coinsEarned: DAILY_LOGIN_COINS,
-        currentCoins: finalCoins,
+        coinsEarned: coinsEarned,
+        totalCoins: newTotalCoins,
         treesPlanted: finalTreesPlanted,
         newTreesPlanted: treesToPlant,
-        totalCoinsEarned: finalTotalCoinsEarned,
-        coinsToNextTree: COINS_FOR_TREE - (finalCoins % COINS_FOR_TREE),
-        // Streak data
+        coinsForTree: COINS_FOR_TREE,
+        coinsToNextTree: COINS_FOR_TREE - (newTotalCoins % COINS_FOR_TREE),
         streak: newStreak,
-        leavesEarned: leavesEarned,
-        totalLeaves: newTotalLeaves,
         message: treesToPlant > 0 
-          ? `🌳 You planted ${treesToPlant} tree(s)! +${leavesEarned}🍃 Day ${newStreak} streak!` 
-          : `+${DAILY_LOGIN_COINS} coins & +${leavesEarned}🍃 Day ${newStreak} streak!`
+          ? `You planted ${treesToPlant} tree(s)! +${coinsEarned} coins (Day ${newStreak})` 
+          : `+${coinsEarned} coins! Day ${newStreak} streak`
       }
     });
   } catch (error) {

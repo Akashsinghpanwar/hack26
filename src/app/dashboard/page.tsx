@@ -9,7 +9,7 @@ import { Navbar } from '@/components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, AreaChart, Area, CartesianGrid } from 'recharts';
-import { Activity, Leaf, Flame, Trophy, Map, ArrowRight, Zap, TrendingUp, Award, TreeDeciduous, Gift, TrendingDown, X, Sprout } from 'lucide-react';
+import { Activity, Leaf, Flame, Trophy, Map, ArrowRight, Zap, TrendingUp, Award, TreeDeciduous, Gift, TrendingDown, X } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -96,6 +96,8 @@ export default function DashboardPage() {
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
   const [showRewardPopup, setShowRewardPopup] = useState(false);
   const [hasShownAutoPopup, setHasShownAutoPopup] = useState(false);
+  const [animatedCoins, setAnimatedCoins] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const { data: stats } = useSWR(
     status === 'authenticated' ? '/api/user/stats' : null,
@@ -122,12 +124,37 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.success) {
         setRewardMessage(data.data.message);
-        // Force refresh the daily reward data - revalidate immediately
+        
+        // Start coin count-up animation
+        const startValue = dailyReward?.data?.totalCoins || 0;
+        const endValue = data.data.totalCoins;
+        const coinsEarned = data.data.coinsEarned;
+        const duration = 1500; // 1.5 seconds
+        const steps = 30;
+        const increment = coinsEarned / steps;
+        let currentStep = 0;
+        
+        setIsAnimating(true);
+        setAnimatedCoins(startValue);
+        
+        const animationInterval = setInterval(() => {
+          currentStep++;
+          if (currentStep >= steps) {
+            setAnimatedCoins(endValue);
+            setIsAnimating(false);
+            clearInterval(animationInterval);
+          } else {
+            setAnimatedCoins(Math.round(startValue + (increment * currentStep)));
+          }
+        }, duration / steps);
+        
+        // Update SWR cache after animation starts - revalidate to ensure sync with server
         await mutateDailyReward(undefined, { revalidate: true });
+        
         setTimeout(() => {
           setRewardMessage(null);
-          setShowRewardPopup(false);
-        }, 2000);
+          setAnimatedCoins(null);
+        }, 3000);
       }
     } catch (error) {
       console.error('Failed to claim reward:', error);
@@ -189,12 +216,6 @@ export default function DashboardPage() {
             </h1>
             <p className="text-slate-500 font-medium text-xs sm:text-sm">Your environmental impact summary</p>
           </div>
-          <Link href="/compare">
-            <Button className="bg-slate-900 text-white hover:bg-slate-800 hover:scale-105 transition-all shadow-md hover:shadow-xl rounded-full px-4 sm:px-6 h-10 sm:h-12 font-bold group text-sm sm:text-base">
-              <Map className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
-              Log Journey
-            </Button>
-          </Link>
         </div>
 
         {/* Hero Level Stats */}
@@ -480,9 +501,9 @@ export default function DashboardPage() {
       {/* Floating Reward Icon Button */}
       <button
         onClick={() => setShowRewardPopup(true)}
-        className={`fixed bottom-6 right-6 z-40 p-3 rounded-full shadow-lg transition-all hover:scale-110 ${
+        className={`fixed top-20 right-6 z-40 p-3 rounded-full shadow-lg transition-all hover:scale-110 ${
           dailyReward?.data?.canClaimReward 
-            ? 'bg-emerald-500 text-white animate-bounce' 
+            ? 'bg-emerald-500 text-white' 
             : 'bg-slate-800 text-emerald-400'
         }`}
       >
@@ -494,54 +515,111 @@ export default function DashboardPage() {
 
       {/* Reward Popup Modal */}
       {showRewardPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowRewardPopup(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowRewardPopup(false)}>
           <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-200"
+            className="bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-4 relative">
+            <div className="p-5 pb-3 relative">
               <button 
                 onClick={() => setShowRewardPopup(false)}
-                className="absolute top-3 right-3 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                className="absolute top-4 right-4 p-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               >
-                <X className="w-4 h-4 text-white" />
+                <X className="w-4 h-4 text-white/70" />
               </button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <TreeDeciduous className="w-8 h-8 text-white" />
+              <h3 className="text-xl font-bold text-white">Free daily reward</h3>
+            </div>
+
+            {/* Streak Day Cards */}
+            <div className="px-5 pb-4">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {[
+                  { day: 1, coins: 5 },
+                  { day: 2, coins: 10 },
+                  { day: 3, coins: 15 },
+                  { day: 4, coins: 20 },
+                  { day: 5, coins: 30 },
+                  { day: 6, coins: 40 },
+                  { day: 7, coins: 50 },
+                ].map((reward) => {
+                  const currentStreak = dailyReward?.data?.streak || 0;
+                  const nextDay = currentStreak + 1 > 7 ? 1 : currentStreak + 1;
+                  const isCurrent = reward.day === nextDay && dailyReward?.data?.canClaimReward;
+                  const isClaimed = reward.day <= currentStreak;
+                  
+                  return (
+                    <div
+                      key={reward.day}
+                      className={`flex-shrink-0 w-20 rounded-xl p-3 text-center transition-all ${
+                        isCurrent
+                          ? 'bg-slate-800 border-2 border-emerald-500 shadow-lg shadow-emerald-500/20'
+                          : isClaimed
+                          ? 'bg-slate-800/50 border border-slate-700'
+                          : 'bg-slate-800 border border-slate-700'
+                      }`}
+                    >
+                      {/* Coin Icon */}
+                      <div className={`text-2xl mb-1 ${isClaimed ? 'opacity-50' : ''}`}>
+                        {isClaimed ? (
+                          <span className="text-emerald-500">✓</span>
+                        ) : reward.day >= 5 ? (
+                          <span>🪙🪙</span>
+                        ) : (
+                          <span>🪙</span>
+                        )}
+                      </div>
+                      
+                      {/* Coin Amount */}
+                      <p className={`text-xl font-black ${
+                        isCurrent ? 'text-emerald-400' : isClaimed ? 'text-slate-500' : 'text-emerald-400'
+                      }`}>
+                        {reward.coins}
+                      </p>
+                      
+                      {/* Day Label */}
+                      <div className={`text-xs font-semibold mt-1 py-1 rounded-md ${
+                        isCurrent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'
+                      }`}>
+                        Day {reward.day}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Progress to Tree */}
+            <div className="px-5 pb-4">
+              <div className="bg-slate-800 rounded-xl p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-slate-400">Progress to plant a tree</span>
+                  <span className={`text-sm font-bold text-emerald-400 ${isAnimating ? 'scale-110' : ''} transition-transform`}>
+                    <span className={isAnimating ? 'text-yellow-400' : ''}>
+                      {animatedCoins !== null ? animatedCoins : (dailyReward?.data?.totalCoins || 0)}
+                    </span> / 5000
+                  </span>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Your Impact</h3>
-                  <p className="text-emerald-100 text-sm">Growing a greener future</p>
+                <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className={`bg-emerald-500 h-full rounded-full transition-all ${isAnimating ? 'duration-100' : 'duration-500'}`}
+                    style={{ width: `${Math.min(((animatedCoins !== null ? animatedCoins : (dailyReward?.data?.totalCoins || 0)) / 5000) * 100, 100)}%` }}
+                  ></div>
+                </div>
+                {isAnimating && (
+                  <div className="text-center mt-2 text-yellow-400 font-bold animate-pulse">
+                    +{dailyReward?.data?.nextRewardAmount || 5} coins!
+                  </div>
+                )}
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <TreeDeciduous className="w-5 h-5 text-emerald-500" />
+                  <span className="text-white font-bold">{dailyReward?.data?.treesPlanted || 0} trees planted</span>
                 </div>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-5">
-              {/* Trees Planted Display */}
-              <div className="text-center mb-5">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-50 rounded-full mb-3">
-                  <Sprout className="w-10 h-10 text-emerald-500" />
-                </div>
-                <p className="text-4xl font-black text-slate-800">{dailyReward?.data?.treesPlanted || 0}</p>
-                <p className="text-sm text-slate-500 font-medium">Trees Planted</p>
-              </div>
-
-              {/* Stats Row */}
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="bg-slate-50 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-slate-800">{dailyReward?.data?.coins || 0}</p>
-                  <p className="text-xs text-slate-500">Coins</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl p-3 text-center">
-                  <p className="text-xl font-bold text-slate-800">{dailyReward?.data?.streak || 1}</p>
-                  <p className="text-xs text-slate-500">Day Streak</p>
-                </div>
-              </div>
-
-              {/* Claim Button or Status */}
+            {/* Claim Button */}
+            <div className="px-5 pb-5">
               {dailyReward?.data?.canClaimReward ? (
                 <Button
                   onClick={handleClaimReward}
@@ -549,18 +627,18 @@ export default function DashboardPage() {
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
                 >
                   <Gift className="w-5 h-5 mr-2" />
-                  {claimingReward ? 'Claiming...' : 'Claim Daily Reward'}
+                  {claimingReward ? 'Claiming...' : `Claim +${dailyReward?.data?.nextRewardAmount || 5} Coins`}
                 </Button>
               ) : (
-                <div className="bg-slate-100 rounded-xl p-4 text-center">
-                  <p className="font-bold text-slate-700">Already Claimed Today!</p>
-                  <p className="text-xs text-slate-500 mt-1">Come back tomorrow for +10 coins</p>
+                <div className="bg-slate-800 rounded-xl p-4 text-center">
+                  <p className="font-bold text-white">Claimed Today!</p>
+                  <p className="text-xs text-slate-400 mt-1">Come back tomorrow</p>
                 </div>
               )}
 
               {/* Reward Message */}
               {rewardMessage && (
-                <div className="mt-4 bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl font-medium text-center animate-pulse">
+                <div className="mt-4 bg-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl font-medium text-center">
                   {rewardMessage}
                 </div>
               )}

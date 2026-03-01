@@ -29,7 +29,14 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        // NextAuth returns generic error codes, map to user-friendly messages
+        const errorMessages: Record<string, string> = {
+          'CredentialsSignin': 'Invalid email or password',
+          'No user found with this email': 'No user found with this email',
+          'Invalid password': 'Invalid password',
+          'Please enter email and password': 'Please enter email and password',
+        };
+        setError(errorMessages[result.error] || result.error);
       } else {
         router.push('/dashboard');
         router.refresh();
